@@ -95,7 +95,7 @@ export const VATAdminPage: React.FC = () => {
           id: payment.id,
           user_id: payment.user_id,
           amount: payment.amount,
-          token: payment.token || 'MNEE',
+          token: payment.token || 'XLM',
           status: payment.status,
           transaction_hash: payment.transaction_hash,
           payment_date: payment.payment_date,

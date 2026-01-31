@@ -38,8 +38,8 @@ function GemetraLandingPage() {
         <div className="flex w-full flex-col items-center justify-center gap-8 z-10">
           <div className="inline-flex items-center gap-3 px-4 py-2 bg-brand-50 rounded-full mb-2">
             <img
-              src="/ethereum.png"
-              alt="Ethereum logo"
+              src="/xlm.png"
+              alt="Stellar logo"
               className="h-5 w-5 object-contain"
             />
             <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Built on STELLAR</span>
@@ -48,7 +48,7 @@ function GemetraLandingPage() {
               alt="XLM logo"
               className="h-5 w-5 object-contain"
             />
-            <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Powered by MNEE</span>
+            <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Powered by XLM</span>
           </div>
           <span className="w-full max-w-[1024px] whitespace-pre-wrap font-['Montserrat'] text-[96px] font-[900] leading-[84px] text-brand-800 text-center -tracking-[0.04em] mobile:font-['Montserrat'] mobile:text-[52px] mobile:font-[900] mobile:leading-[68px] mobile:tracking-normal">
             {"Global Remittance"} <br /> <span className="bg-gradient-to-r from-brand-800 to-brand-600 bg-clip-text text-transparent">Infrastructure</span>
@@ -136,8 +136,8 @@ function GemetraLandingPage() {
               <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center">
                 <img
                   className="h-8 object-cover"
-                  src="/ethereum.png"
-                  alt="Ethereum logo"
+                  src="/xlm.png"
+                  alt="Stellar logo"
                 />
               </div>
               <h3 className="font-['Montserrat'] text-[24px] font-[700]">Blockchain Layer</h3>
@@ -151,21 +151,7 @@ function GemetraLandingPage() {
               <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">Fast Settlement</span>
             </div>
             <div className="flex items-center gap-4 mt-4">
-              <img
-                className="h-8 object-contain"
-                src="/metmask.png"
-                alt="MetaMask logo"
-              />
-              <img
-                className="h-8 object-contain"
-                alt="WalletConnect logo"
-                src="/walletconnect.png"
-              />
-              <img
-                className="h-8 object-contain"
-                alt="Coinbase Wallet logo"
-                src="/coinbase.svg"
-              />
+              {/* Wallet icons removed as they were Ethereum specific */}
             </div>
           </div>
 
@@ -448,7 +434,7 @@ function GemetraLandingPage() {
                   Ultra-Low Transaction Fees
                 </h3>
                 <p className="text-subtext-color font-['Montserrat'] text-[16px] leading-[24px] mb-6">
-                  Transaction cost &lt;1¢ per transaction. MNEE is fully backed & regulated, highly scalable, and saves up to 95% compared to traditional banking.
+                  Transaction cost &lt;1¢ per transaction. XLM is decentralized, efficient, highly scalable, and saves up to 95% compared to traditional banking.
                 </p>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2">
@@ -656,7 +642,7 @@ function GemetraLandingPage() {
                     </div>
                     <div>
                       <h4 className="font-['Montserrat'] text-[18px] font-[600] text-default-font">On-chain Payout</h4>
-                      <p className="text-subtext-color">Tourist receives MNEE stablecoin via ERC-20 transfer on Ethereum with fast finality.</p>
+                      <p className="text-subtext-color">Tourist receives XLM via native transfer on Stellar with fast finality.</p>
                     </div>
                   </div>
                 </div>
@@ -666,7 +652,7 @@ function GemetraLandingPage() {
                 <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-100">
                   <h4 className="font-['Montserrat'] text-[16px] font-[700] text-default-font mb-2">Real-World Example</h4>
                   <p className="text-subtext-color mb-4">
-                    A Japanese tourist purchases a luxury watch in Dubai Mall for AED 50,000 (incl. 5% VAT = AED 2,500). Using Gemetra, they scan the VAT tag at Dubai Airport and receive AED 2,125 (85% of VAT) in USDCa directly to their wallet before boarding their flight.
+                    A Japanese tourist purchases a luxury watch in Dubai Mall for AED 50,000 (incl. 5% VAT = AED 2,500). Using Gemetra, they scan the VAT tag at Dubai Airport and receive AED 2,125 (85% of VAT) in XLM directly to their wallet before boarding their flight.
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="px-3 py-1 bg-green-50 rounded-full text-xs font-medium text-green-700">4s PAYOUT</span>
@@ -916,10 +902,10 @@ function GemetraLandingPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="col-span-2">
                             <p className="text-subtext-color mb-4">
-                              Once validated, the smart contract computes the refund amount (VAT * rate - fee) and the tourist receives MNEE stablecoin via ERC-20 transfer on Ethereum. The treasury disburses funds efficiently with fast finality, ensuring the tourist receives their refund before boarding their flight.
+                              Once validated, the smart contract computes the refund amount (VAT * rate - fee) and the tourist receives XLM via native transfer on Stellar. The treasury disburses funds efficiently with fast finality, ensuring the tourist receives their refund before boarding their flight.
                             </p>
                             <div className="flex flex-wrap gap-3">
-                              <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">ERC-20 TRANSFERS</span>
+                              <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">NATIVE TRANSFERS</span>
                               <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">FAST FINALITY</span>
                               <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">AUDITABILITY</span>
                             </div>
@@ -929,7 +915,7 @@ function GemetraLandingPage() {
                             <ul className="space-y-2 text-sm text-subtext-color">
                               <li>• 85-87% of VAT amount</li>
                               <li>• ~AED 4.80 tag fee</li>
-                              <li>• MNEE stablecoin payments</li>
+                              <li>• XLM (Stellar) payments</li>
                               <li>• Transaction notes with claim_id</li>
                             </ul>
                           </div>
@@ -976,7 +962,7 @@ function GemetraLandingPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="col-span-2">
                             <p className="text-subtext-color mb-4">
-                              The HR department uploads payroll data in CSV format or through contracts into the Gemetra dashboard. The AI layer parses the gross salary, deductions, and tax rules by jurisdiction, then produces a structured transaction plan with net salaries in MNEE stablecoin, and any necessary FX conversions.
+                              The HR department uploads payroll data in CSV format or through contracts into the Gemetra dashboard. The AI layer parses the gross salary, deductions, and tax rules by jurisdiction, then produces a structured transaction plan with net salaries in XLM, and any necessary FX conversions.
                             </p>
                             <div className="flex flex-wrap gap-3">
                               <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">AI PARSING</span>
@@ -1010,7 +996,7 @@ function GemetraLandingPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="col-span-2">
                             <p className="text-subtext-color mb-4">
-                              The CFO and HR department must both approve the payrun to ensure security and accuracy. Once approved, a payrun_id snapshot is stored in both Supabase and on Ethereum blockchain as an immutable reference. The planner then processes recipients with MNEE stablecoin transfers for efficient payroll distribution.
+                              The CFO and HR department must both approve the payrun to ensure security and accuracy. Once approved, a payrun_id snapshot is stored in both Supabase and on Stellar blockchain as an immutable reference. The planner then processes recipients with XLM transfers for efficient payroll distribution.
                             </p>
                             <div className="flex flex-wrap gap-3">
                               <span className="px-3 py-1 bg-brand-50 rounded-full text-xs font-medium text-brand-800">DUAL APPROVAL</span>

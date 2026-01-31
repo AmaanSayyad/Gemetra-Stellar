@@ -22,7 +22,7 @@ interface AIAssistantPageProps {
   onSessionCreated?: (sessionId: string) => void; // Callback for new session
 }
 
-export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ 
+export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
   companyName = 'My Company',
   sessionId: initialSessionId,
   onSessionCreated
@@ -81,7 +81,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
           {
             id: 'initial-ai-message',
             type: 'assistant',
-            content: `Hello! I'm your smart AI assistant for ${companyName}. I'm powered by Google Gemini AI and have deep knowledge about your company data, payroll operations, and Ethereum blockchain technology with MNEE stablecoin. I can analyze your employee data, provide payment insights, explain blockchain concepts, and have natural conversations. What would you like to know?`,
+            content: `Hello! I'm your smart AI assistant for ${companyName}. I'm powered by Google Gemini AI and have deep knowledge about your company data, payroll operations, and Stellar blockchain technology with XLM. I can analyze your employee data, provide payment insights, explain blockchain concepts, and have natural conversations. What would you like to know?`,
             timestamp: new Date()
           }
         ]);
@@ -176,9 +176,9 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
 
       setLoadingMessage('Processing with AI...');
       const response = await generateAIResponse(userMessageContent, context);
-      
+
       console.log('AI Response received:', response);
-      
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
@@ -217,45 +217,45 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
 
   // Pool of all available questions (50+ questions)
   const allAvailableQuestions = [
-    // MNEE Questions
-    "What is MNEE?",
-    "Tell me about MNEE token",
-    "What is MNEE's contract address?",
-    "How do I get MNEE tokens?",
-    "What are the benefits of using MNEE?",
-    "What is MNEE's market cap?",
-    "Is MNEE a stablecoin?",
-    "What blockchain is MNEE on?",
-    "How is MNEE different from other stablecoins?",
-    "What is MNEE's fully diluted valuation?",
-    "What is MNEE's 24 hour trading volume?",
-    "Is MNEE fully backed and regulated?",
-    "What is MNEE's settlement time?",
-    "What are MNEE's transaction costs?",
-    "How scalable is MNEE?",
-    "Where can I buy MNEE tokens?",
-    "How do I store MNEE tokens?",
-    "What is MNEE's token symbol?",
-    "Is MNEE available on Uniswap?",
-    "What is the MNEE token supply?",
-    
-    // Ethereum Questions
-    "What is Ethereum?",
-    "What is the current price of Ethereum?",
-    "How does Ethereum work?",
-    "What is Ethereum's market cap?",
-    "How do I use Ethereum?",
-    "What are Ethereum gas fees?",
-    "What is an Ethereum wallet?",
+    // XLM Questions
+    "What is XLM?",
+    "Tell me about Stellar Lumens",
+    "What is XLM used for?",
+    "How do I get XLM tokens?",
+    "What are the benefits of using Stellar?",
+    "What is XLM's market cap?",
+    "Is XLM a stablecoin?",
+    "What is the Stellar network?",
+    "How is XLM different from Bitcoin?",
+    "What is Stellar's consensus mechanism?",
+    "What is XLM's 24 hour trading volume?",
+    "Is Stellar energy efficient?",
+    "What is Stellar's settlement time?",
+    "What are Stellar's transaction costs?",
+    "How scalable is Stellar?",
+    "Where can I buy XLM?",
+    "How do I store XLM?",
+    "What is XLM's ticker symbol?",
+    "Is XLM available on major exchanges?",
+    "What is the total XLM supply?",
+
+    // Stellar Blockchain Questions
+    "What is Stellar?",
+    "What is the current price of XLM?",
+    "How does Stellar work?",
+    "What is Stellar's mission?",
+    "How do I use Stellar?",
+    "What are Stellar fees?",
+    "What is a Stellar wallet?",
     "How do I connect my wallet?",
-    "What is MetaMask?",
-    "How do I send Ethereum?",
-    "What are ERC-20 tokens?",
-    "Explain smart contracts",
+    "What is Freighter?",
+    "How do I send XLM?",
+    "What are Stellar Assets?",
+    "Explain Soroban smart contracts",
     "How does blockchain work?",
     "What is a blockchain transaction?",
-    "What is Ethereum's network?",
-    
+    "What is the Stellar Consensus Protocol?",
+
     // Company & Employee Questions
     "How many employees do we have?",
     "Who is our highest paid employee?",
@@ -272,7 +272,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
     "What is our total monthly payroll?",
     "Show me employee details",
     "How many active employees?",
-    
+
     // Payment Questions
     "When was the last payment made?",
     "Show me payment statistics",
@@ -299,29 +299,29 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
   useEffect(() => {
     // Only show questions in new chats (when there's only the initial message or no messages)
     const isNewChat = messages.length <= 1;
-    
+
     if (isNewChat && displayedQuestions.length === 0) {
       // Initialize with 70% company questions
-      const initialQuestions = isMobile 
+      const initialQuestions = isMobile
         ? [
-            // 2 company questions (67%), 1 other
-            allAvailableQuestions[35], // "How many employees do we have?"
-            allAvailableQuestions[36], // "Who is our highest paid employee?"
-            allAvailableQuestions[0], // "What is MNEE?"
-          ]
+          // 2 company questions (67%), 1 other
+          allAvailableQuestions[35], // "How many employees do we have?"
+          allAvailableQuestions[36], // "Who is our highest paid employee?"
+          allAvailableQuestions[0], // "What is XLM?"
+        ]
         : [
-            // 7 company questions (70%), 3 other questions (30%)
-            allAvailableQuestions[35], // "How many employees do we have?"
-            allAvailableQuestions[36], // "Who is our highest paid employee?"
-            allAvailableQuestions[37], // "List all employees"
-            allAvailableQuestions[38], // "Company overview please"
-            allAvailableQuestions[39], // "Employee salary breakdown"
-            allAvailableQuestions[40], // "What is the total payroll amount?"
-            allAvailableQuestions[41], // "Show me employee statistics"
-            allAvailableQuestions[0], // "What is MNEE?"
-            allAvailableQuestions[2], // "What is the current price of Ethereum"
-            allAvailableQuestions[52], // "When was the last payment made?"
-          ];
+          // 7 company questions (70%), 3 other questions (30%)
+          allAvailableQuestions[35], // "How many employees do we have?"
+          allAvailableQuestions[36], // "Who is our highest paid employee?"
+          allAvailableQuestions[37], // "List all employees"
+          allAvailableQuestions[38], // "Company overview please"
+          allAvailableQuestions[39], // "Employee salary breakdown"
+          allAvailableQuestions[40], // "What is the total payroll amount?"
+          allAvailableQuestions[41], // "Show me employee statistics"
+          allAvailableQuestions[0], // "What is XLM?"
+          allAvailableQuestions[2], // "What is XLM used for?"
+          allAvailableQuestions[52], // "When was the last payment made?"
+        ];
       setDisplayedQuestions(initialQuestions);
       setUsedQuestions(new Set());
     }
@@ -331,13 +331,13 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
   const replaceQuestion = (usedQuestion: string) => {
     setUsedQuestions(prevUsed => {
       const newUsed = new Set(prevUsed).add(usedQuestion);
-      
+
       setDisplayedQuestions(prevDisplayed => {
         // Get available questions that haven't been used and aren't currently displayed
-        const available = allAvailableQuestions.filter(q => 
+        const available = allAvailableQuestions.filter(q =>
           !newUsed.has(q) && !prevDisplayed.includes(q)
         );
-        
+
         if (available.length > 0) {
           // Count current category distribution
           const currentCategories = {
@@ -346,11 +346,11 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
               return idx >= 35 && idx < 50;
             }).length,
           };
-          
+
           const totalDisplayed = prevDisplayed.length;
           const targetCompanyCount = Math.ceil(totalDisplayed * 0.7); // 70% target
           const currentCompanyCount = currentCategories.company;
-          
+
           // Prioritize company questions to maintain 70% ratio
           let preferredQuestions = available;
           if (currentCompanyCount < targetCompanyCount) {
@@ -366,13 +366,13 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             // Company questions are at or above target - prefer other categories
             const otherQuestions = available.filter(q => {
               const idx = allAvailableQuestions.indexOf(q);
-              return idx < 35 || idx >= 50; // MNEE, Ethereum, or Payment
+              return idx < 35 || idx >= 50; // XLM, Stellar, or Payment
             });
             if (otherQuestions.length > 0) {
               preferredQuestions = otherQuestions;
             }
           }
-          
+
           // Use preferred questions if available, otherwise use all available
           const questionsToChooseFrom = preferredQuestions.length > 0 ? preferredQuestions : available;
           const newQuestion = questionsToChooseFrom[Math.floor(Math.random() * questionsToChooseFrom.length)];
@@ -382,7 +382,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
           return prevDisplayed.filter(q => q !== usedQuestion);
         }
       });
-      
+
       return newUsed;
     });
   };
@@ -406,14 +406,14 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             if (!prevDisplayed.includes(lastUserMessage.content)) {
               return prevDisplayed; // Question not in list, no change needed
             }
-            
+
             const newUsed = new Set(prevUsed).add(lastUserMessage.content);
-            
+
             // Get available questions that haven't been used and aren't currently displayed
-            const available = allAvailableQuestions.filter(q => 
+            const available = allAvailableQuestions.filter(q =>
               !newUsed.has(q) && !prevDisplayed.includes(q)
             );
-            
+
             if (available.length > 0) {
               // Count current category distribution
               const currentCategories = {
@@ -422,10 +422,10 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
                   return idx >= 35 && idx < 50;
                 }).length,
               };
-              
+
               const totalDisplayed = prevDisplayed.length;
               const targetCompanyCount = Math.ceil(totalDisplayed * 0.7); // 70% target
-              
+
               // Prioritize company questions to maintain 70% ratio
               let preferredQuestions = available;
               if (currentCategories.company < targetCompanyCount) {
@@ -441,13 +441,13 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
                 // Company questions are at or above target - prefer other categories
                 const otherQuestions = available.filter(q => {
                   const idx = allAvailableQuestions.indexOf(q);
-                  return idx < 35 || idx >= 50; // MNEE, Ethereum, or Payment
+                  return idx < 35 || idx >= 50; // XLM, Stellar, or Payment
                 });
                 if (otherQuestions.length > 0) {
                   preferredQuestions = otherQuestions;
                 }
               }
-              
+
               // Use preferred questions if available, otherwise use all available
               const questionsToChooseFrom = preferredQuestions.length > 0 ? preferredQuestions : available;
               const newQuestion = questionsToChooseFrom[Math.floor(Math.random() * questionsToChooseFrom.length)];
@@ -457,7 +457,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
               return prevDisplayed.filter(q => q !== lastUserMessage.content);
             }
           });
-          
+
           return new Set(prevUsed).add(lastUserMessage.content);
         });
       }
@@ -479,41 +479,38 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
               exit={{ opacity: 0, y: -20 }}
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`flex items-start space-x-2 sm:space-x-3 max-w-full sm:max-w-3xl ${
-                message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-              }`}>
-                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  message.type === 'user' 
-                    ? 'bg-gray-900' 
-                    : 'bg-black'
+              <div className={`flex items-start space-x-2 sm:space-x-3 max-w-full sm:max-w-3xl ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                 }`}>
+                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.type === 'user'
+                    ? 'bg-gray-900'
+                    : 'bg-black'
+                  }`}>
                   {message.type === 'user' ? (
                     <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   ) : (
                     <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   )}
                 </div>
-                
-                <div className={`rounded-lg px-3 py-2 sm:px-4 sm:py-3 ${
-                  message.type === 'user'
+
+                <div className={`rounded-lg px-3 py-2 sm:px-4 sm:py-3 ${message.type === 'user'
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-900'
-                }`}>
+                  }`}>
                   {message.type === 'assistant' ? (
                     <div className="text-sm sm:text-base leading-relaxed">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          h1: ({node, ...props}: any) => <h1 className="text-lg sm:text-xl font-semibold text-gray-900 mt-4 mb-3 first:mt-0" {...props} />,
-                          h2: ({node, ...props}: any) => <h2 className="text-base sm:text-lg font-semibold text-gray-900 mt-4 mb-2 first:mt-0" {...props} />,
-                          h3: ({node, ...props}: any) => <h3 className="text-sm sm:text-base font-semibold text-gray-900 mt-3 mb-2 first:mt-0" {...props} />,
-                          p: ({node, ...props}: any) => <p className="text-gray-700 my-2 leading-relaxed first:mt-0 last:mb-0" {...props} />,
-                          strong: ({node, ...props}: any) => <strong className="font-semibold text-gray-900" {...props} />,
-                          em: ({node, ...props}: any) => <em className="italic text-gray-700" {...props} />,
-                          ul: ({node, ...props}: any) => <ul className="list-disc list-inside my-3 space-y-1.5 text-gray-700 ml-2" {...props} />,
-                          ol: ({node, ...props}: any) => <ol className="list-decimal list-inside my-3 space-y-1.5 text-gray-700 ml-2" {...props} />,
-                          li: ({node, ...props}: any) => <li className="text-gray-700 my-1 leading-relaxed" {...props} />,
-                          code: ({node, inline, className, ...props}: any) => {
+                          h1: ({ node, ...props }: any) => <h1 className="text-lg sm:text-xl font-semibold text-gray-900 mt-4 mb-3 first:mt-0" {...props} />,
+                          h2: ({ node, ...props }: any) => <h2 className="text-base sm:text-lg font-semibold text-gray-900 mt-4 mb-2 first:mt-0" {...props} />,
+                          h3: ({ node, ...props }: any) => <h3 className="text-sm sm:text-base font-semibold text-gray-900 mt-3 mb-2 first:mt-0" {...props} />,
+                          p: ({ node, ...props }: any) => <p className="text-gray-700 my-2 leading-relaxed first:mt-0 last:mb-0" {...props} />,
+                          strong: ({ node, ...props }: any) => <strong className="font-semibold text-gray-900" {...props} />,
+                          em: ({ node, ...props }: any) => <em className="italic text-gray-700" {...props} />,
+                          ul: ({ node, ...props }: any) => <ul className="list-disc list-inside my-3 space-y-1.5 text-gray-700 ml-2" {...props} />,
+                          ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside my-3 space-y-1.5 text-gray-700 ml-2" {...props} />,
+                          li: ({ node, ...props }: any) => <li className="text-gray-700 my-1 leading-relaxed" {...props} />,
+                          code: ({ node, inline, className, ...props }: any) => {
                             const match = /language-(\w+)/.exec(className || '');
                             return inline ? (
                               <code className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
@@ -521,10 +518,10 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
                               <code className="block bg-gray-800 text-gray-100 p-3 rounded text-sm font-mono overflow-x-auto my-3" {...props} />
                             );
                           },
-                          pre: ({node, ...props}: any) => <pre className="bg-gray-800 text-gray-100 p-3 rounded text-sm font-mono overflow-x-auto my-3" {...props} />,
-                          blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-gray-300 pl-4 my-3 italic text-gray-600" {...props} />,
-                          a: ({node, ...props}: any) => <a className="text-blue-600 hover:text-blue-800 underline break-words" target="_blank" rel="noopener noreferrer" {...props} />,
-                          hr: ({node, ...props}: any) => <hr className="my-4 border-gray-300" {...props} />,
+                          pre: ({ node, ...props }: any) => <pre className="bg-gray-800 text-gray-100 p-3 rounded text-sm font-mono overflow-x-auto my-3" {...props} />,
+                          blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-gray-300 pl-4 my-3 italic text-gray-600" {...props} />,
+                          a: ({ node, ...props }: any) => <a className="text-blue-600 hover:text-blue-800 underline break-words" target="_blank" rel="noopener noreferrer" {...props} />,
+                          hr: ({ node, ...props }: any) => <hr className="my-4 border-gray-300" {...props} />,
                         }}
                       >
                         {message.content}
@@ -533,9 +530,8 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
                   ) : (
                     <div className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed">{message.content}</div>
                   )}
-                  <div className={`text-xs mt-1 sm:mt-2 ${
-                    message.type === 'user' ? 'text-gray-300' : 'text-gray-500'
-                  }`}>
+                  <div className={`text-xs mt-1 sm:mt-2 ${message.type === 'user' ? 'text-gray-300' : 'text-gray-500'
+                    }`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
@@ -543,7 +539,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             </motion.div>
           ))}
         </AnimatePresence>
-        
+
         {/* Loading indicator */}
         {isLoading && (
           <motion.div
@@ -564,7 +560,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             </div>
           </motion.div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -598,7 +594,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={isMobile ? "Ask me anything..." : "Ask me anything about your company, employees, payments, or Ethereum/MNEE blockchain..."}
+            placeholder={isMobile ? "Ask me anything..." : "Ask me anything about your company, employees, payments, or Stellar/XLM blockchain..."}
             className="flex-1 bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 sm:px-4 sm:py-3 focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
             disabled={isLoading}
           />
@@ -614,7 +610,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
             )}
           </button>
         </div>
-        
+
         <div className="text-xs text-gray-500 mt-1 sm:mt-2 leading-tight">
           {isMobile ? "Press Enter to send" : "Press Enter to send • Shift+Enter for new line"}
         </div>

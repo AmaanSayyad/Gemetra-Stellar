@@ -84,7 +84,7 @@ export const VATRefundOverview: React.FC<VATRefundOverviewProps> = ({ setActiveT
             date: payment.created_at,
             amount: payment.amount,
             status: payment.status,
-            token: payment.token || 'MNEE',
+            token: payment.token || 'XLM',
             transaction_hash: payment.transaction_hash
           }));
         

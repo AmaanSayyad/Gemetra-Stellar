@@ -34,7 +34,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
 }) => {
   const { createPayment } = usePayments();
   const { earnPoints } = usePoints();
-  const { walletState } = useStellarWallet();
+  const { walletState, signTransaction } = useStellarWallet();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<{
     success: boolean;
@@ -93,6 +93,13 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
 
       console.log(`📤 Preparing batch payment for ${recipientsData.length} recipients...`);
 
+      // Create wallet signer wrapper
+      const walletSigner = {
+        signTransaction,
+        getPublicKey: () => walletState.publicKey,
+        isConnected: () => walletState.isConnected,
+      };
+
       // Send batch payment using Stellar
       const result = await sendBulkXlmPayments({
         recipients: recipientsData.map(r => ({
@@ -100,34 +107,34 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           amount: r.amount,
           memo: `Payroll for employee`
         }))
-      });
+      }, walletSigner);
 
       if (result.success) {
         // Record payments in Supabase with correct transaction hash for each employee
         try {
           console.log(`💾 Recording ${employeesToPay.length} payments to database...`);
           console.log('Available transaction hashes:', result.txHashes);
-          
+
           // Record payment for each employee sequentially to avoid state conflicts
           // IMPORTANT: Match employees to their transaction hashes by wallet address
           for (let i = 0; i < employeesToPay.length; i++) {
             const employee = employeesToPay[i];
-            
+
             // Find the transaction hash for this employee's wallet address
             // Make sure we're matching correctly by normalizing addresses
             const employeeWalletAddress = employee.wallet_address?.toLowerCase().trim();
             const matchingTx = result.txHashes?.find(
               tx => tx.address.toLowerCase().trim() === employeeWalletAddress
             );
-            
+
             const employeeTxHash = matchingTx?.txHash;
-            
+
             if (!employeeTxHash) {
-              console.warn(`⚠️ No transaction hash found for ${employee.name} (${employeeWalletAddress}). Available hashes:`, 
+              console.warn(`⚠️ No transaction hash found for ${employee.name} (${employeeWalletAddress}). Available hashes:`,
                 result.txHashes?.map(tx => ({ address: tx.address.toLowerCase(), txHash: tx.txHash }))
               );
             }
-            
+
             console.log(`📝 Recording payment ${i + 1}/${employeesToPay.length} for ${employee.name} (${employee.id}):`, {
               employee_id: employee.id,
               employee_name: employee.name,
@@ -137,7 +144,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
               txHash: employeeTxHash || 'NOT FOUND - Payment may have failed',
               hasMatchingTx: !!matchingTx
             });
-            
+
             // Only record payment if we have a transaction hash (payment was successful)
             if (employeeTxHash) {
               try {
@@ -159,15 +166,15 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
             } else {
               console.error(`❌ Skipping payment record for ${employee.name} - no transaction hash found. Payment may have failed.`);
             }
-            
+
             // Small delay to ensure state updates properly before next payment
             if (i < employeesToPay.length - 1) {
               await new Promise(resolve => setTimeout(resolve, 100));
             }
           }
-          
+
           console.log(`✅ Finished recording payments for ${employeesToPay.length} employees`);
-          
+
           // Award points for bulk payment
           try {
             if (employeesToPay.length > 1) {
@@ -196,15 +203,16 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
             const matchingTx = result.txHashes?.find(
               tx => tx.address.toLowerCase().trim() === employeeWalletAddress
             );
-            const employeeTxHash = matchingTx?.txHash || result.txHash; // Fallback to first if not found
-            
+            // Fallback to first tx if we can't match (unlikely if logic is correct)
+            const employeeTxHash = matchingTx?.txHash || result.txHashes?.[0]?.txHash;
+
             console.log(`📧 Preparing email for ${employee.name} (${employee.email}):`, {
               employee_name: employee.name,
               employee_email: employee.email,
               wallet_address: employeeWalletAddress,
               txHash: employeeTxHash
             });
-            
+
             return {
               employeeName: employee.name,
               employeeEmail: employee.email, // Use employee's actual email
@@ -221,7 +229,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
               })
             };
           });
-          
+
           console.log(`📧 Sending ${emailDataList.length} payment notification emails...`);
 
           emailResults = await sendBulkPaymentEmails(emailDataList);
@@ -236,14 +244,14 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           console.log('PaymentPreviewModal: Calling onPaymentSuccess callback');
           onPaymentSuccess();
         }
-        
+
         setPaymentResult({
           success: true,
-          txHash: result.txHash,
+          txHash: result.txHashes?.[0]?.txHash, // Use first hash for display
           processed: result.processed,
           emailResults
         });
-        
+
         // Wait a moment to show success, then trigger the parent callback
         setTimeout(() => {
           onConfirmSend();
@@ -258,14 +266,14 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
     } catch (error) {
       console.error('Error in handleConfirmPayment:', error);
       let errorMessage = 'An unexpected error occurred';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('asset') && error.message.includes('missing from')) {
           // Extract the address from the error message
           const addressMatch = error.message.match(/missing from ([A-Z2-7]{58})/);
           // const failedAddress = addressMatch ? addressMatch[1] : 'one of the recipients';
           const shortAddress = addressMatch ? `${addressMatch[1].substring(0, 8)}...${addressMatch[1].substring(-6)}` : 'the recipient';
-          
+
           errorMessage = `Payment failed for recipient ${shortAddress}. Please check the address and try again.`;
         } else if (error.message.includes('Wallet not connected')) {
           errorMessage = 'Wallet is not connected. Please connect your wallet and try again.';
@@ -273,7 +281,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           errorMessage = error.message;
         }
       }
-      
+
       setPaymentResult({
         success: false,
         error: errorMessage
@@ -285,7 +293,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
 
   const viewOnExplorer = () => {
     if (paymentResult?.txHash) {
-      window.open(`https://etherscan.io/tx/${paymentResult.txHash}`, '_blank');
+      window.open(`https://stellar.expert/explorer/public/tx/${paymentResult.txHash}`, '_blank');
     }
   };
 
@@ -341,27 +349,27 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           ) : (
             <>
               {/* Network Warning */}
-              {chainId !== 1 && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              {network !== 'mainnet' && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-center space-x-2">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                    <span className="text-red-800 font-medium">Wrong Network</span>
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <span className="text-yellow-800 font-medium">Test Network</span>
                   </div>
-                  <p className="text-red-700 text-sm mt-1">
-                    Please switch to <strong>Ethereum Mainnet</strong> to use real MNEE tokens. MNEE only exists on Mainnet.
+                  <p className="text-yellow-700 text-sm mt-1">
+                    You are connected to the Stellar Testnet. Payments will use test XLM.
                   </p>
                 </div>
               )}
 
               {/* Mainnet Confirmation */}
-              {chainId === 1 && (
+              {network === 'mainnet' && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-green-800 font-medium">Connected to Ethereum Mainnet</span>
+                    <span className="text-green-800 font-medium">Connected to Stellar Public Network</span>
                   </div>
                   <p className="text-green-700 text-sm mt-1">
-                    Using real MNEE tokens. Contract: <code className="text-xs bg-green-100 px-1 rounded">{MNEE_CONTRACT_ADDRESS_MAINNET.slice(0, 10)}...</code>
+                    Using real XLM.
                   </p>
                 </div>
               )}
@@ -372,7 +380,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <span className="text-black font-medium">Wallet Connected</span>
                   </div>
-                  <span className="text-gray-700 text-sm font-mono">{formatAddress(connectedAccount!)}</span>
+                  <span className="text-gray-700 text-sm font-mono">{formatStellarAddress(connectedAccount!)}</span>
                 </div>
               </div>
             </>
@@ -425,14 +433,13 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                 <Send className="w-5 h-5 text-gray-700" />
                 <span>Payment Recipients</span>
               </h3>
-              
+
               <div className="bg-gray-50 border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
                 {employeesToPay.map((employee, index) => (
                   <div
                     key={employee.id}
-                    className={`p-4 flex items-center justify-between ${
-                      index !== employeesToPay.length - 1 ? 'border-b border-gray-200' : ''
-                    }`}
+                    className={`p-4 flex items-center justify-between ${index !== employeesToPay.length - 1 ? 'border-b border-gray-200' : ''
+                      }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
@@ -464,22 +471,16 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                 <Shield className="w-5 h-5 text-gray-700" />
                 <span>Transaction Summary</span>
               </h3>
-              
+
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4">
                 {/* Payment Token */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Payment Token:</span>
                   <div className="flex items-center space-x-2">
-                    {selectedToken.toUpperCase() === 'MNEE' ? (
-                      <img 
-                        src="/xlm.png" 
+                    {selectedToken.toUpperCase() === 'XLM' || selectedToken.toUpperCase() === 'MNEE' ? (
+                      <img
+                        src="/xlm.png"
                         alt="XLM"
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                    ) : selectedToken.toUpperCase() === 'ETH' ? (
-                      <img 
-                        src="/ethereum.png" 
-                        alt="ETH"
                         className="w-6 h-6 rounded-full object-cover"
                       />
                     ) : (
@@ -502,7 +503,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                 {/* Network Fees */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Network Fees:</span>
-                  <span className="font-medium text-gray-900">~{networkFees.toFixed(3)} ETH</span>
+                  <span className="font-medium text-gray-900">~{networkFees.toFixed(5)} XLM</span>
                 </div>
 
                 {/* Processing Time */}
@@ -516,7 +517,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                     <span className="font-semibold text-gray-900">Total Cost:</span>
                     <div className="text-right">
                       <div className="font-bold text-gray-900">${totalAmount.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">+ ~{networkFees.toFixed(3)} ETH fees</div>
+                      <div className="text-sm text-gray-600">+ ~{networkFees.toFixed(5)} XLM fees</div>
                     </div>
                   </div>
                 </div>
@@ -528,7 +529,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                     <span className="text-green-800 font-medium text-sm">Secure Transaction</span>
                   </div>
                   <div className="text-xs text-green-700">
-                    All payments are processed on the Ethereum blockchain using MNEE stablecoin with cryptographic security.
+                    All payments are processed on the Stellar blockchain using XLM with cryptographic security.
                   </div>
                 </div>
               </div>
@@ -559,13 +560,13 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                   {paymentResult.txHash && (
                     <>
                       <div className="text-sm text-green-700 mb-2">
-                        Transaction Hash: {formatAddress(paymentResult.txHash)}
+                        Transaction Hash: {formatStellarAddress(paymentResult.txHash)}
                       </div>
-                      <button 
+                      <button
                         onClick={viewOnExplorer}
                         className="text-sm text-gray-700 hover:text-gray-900 flex items-center space-x-1"
                       >
-                        <span>View on Etherscan</span>
+                        <span>View on Stellar Expert</span>
                         <Send className="w-3 h-3" />
                       </button>
                     </>
@@ -607,9 +608,8 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
               <motion.button
                 onClick={handleConfirmPayment}
                 disabled={isProcessing || !walletConnected}
-                className={`flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 text-lg ${
-                  isProcessing || !walletConnected ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 text-lg ${isProcessing || !walletConnected ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 whileHover={{ scale: isProcessing || !walletConnected ? 1 : 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -632,7 +632,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           {!paymentResult && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="text-xs text-yellow-800">
-                <strong>Important:</strong> Once confirmed, this transaction cannot be reversed. 
+                <strong>Important:</strong> Once confirmed, this transaction cannot be reversed.
                 Please verify all recipient addresses and amounts before proceeding. Email notifications will be sent to employees automatically.
               </div>
             </div>

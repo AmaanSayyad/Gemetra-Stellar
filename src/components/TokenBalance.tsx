@@ -19,14 +19,14 @@ export const TokenBalance: React.FC = () => {
     try {
       if (isConnected && walletAddress) {
         const xlmBalance = await getXlmBalance(walletAddress);
-        
+
         // Calculate total USD value (simplified calculation)
         const xlmPrice = 0.10; // Example XLM price in USD
         const totalUSD = xlmBalance * xlmPrice;
-        
+
         // Count total assets (XLM)
         const totalCoins = xlmBalance > 0 ? 1 : 0;
-        
+
         setBalances({
           totalUSD: totalUSD,
           xlm: xlmBalance,
@@ -82,11 +82,7 @@ export const TokenBalance: React.FC = () => {
     // Get token logo based on symbol
     const getTokenLogo = (sym: string) => {
       const normalized = sym.toUpperCase();
-      if (normalized === 'ETH' || normalized === 'ETHEREUM') {
-        return '/ethereum.png';
-      } else if (normalized === 'MNEE') {
-        return '/xlm.png';
-      } else if (normalized === 'XLM') {
+      if (normalized === 'XLM' || normalized === 'STELLAR') {
         return '/xlm.png';
       }
       return null;
@@ -98,8 +94,8 @@ export const TokenBalance: React.FC = () => {
       <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-200 last:border-b-0">
         <div className="flex items-center space-x-2 sm:space-x-3">
           {logoPath ? (
-            <img 
-              src={logoPath} 
+            <img
+              src={logoPath}
               alt={symbol}
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
             />
@@ -113,8 +109,8 @@ export const TokenBalance: React.FC = () => {
           <div>
             <div className="font-medium text-gray-900 text-sm sm:text-base">{symbol}</div>
             <div className="text-xs sm:text-sm text-gray-600">
-              {amount.toLocaleString(undefined, { 
-                maximumFractionDigits: amount < 1 ? 6 : 2 
+              {amount.toLocaleString(undefined, {
+                maximumFractionDigits: amount < 1 ? 6 : 2
               })}
             </div>
           </div>
@@ -133,7 +129,7 @@ export const TokenBalance: React.FC = () => {
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900">Token Balance</h3>
         <div className="flex items-center space-x-2">
-          <button 
+          <button
             onClick={fetchBalances}
             className="p-1 text-gray-600 hover:text-gray-900 transition-colors"
             disabled={isLoading}
@@ -231,11 +227,11 @@ export const TokenBalance: React.FC = () => {
           <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 mt-4 sm:mt-6">
             <div className="text-xs text-gray-700 mb-1">Portfolio Insight</div>
             <div className="text-xs sm:text-sm text-gray-700">
-              {balances.totalUSD > 0 
+              {balances.totalUSD > 0
                 ? `Your portfolio holds ${balances.totalCoins} asset${balances.totalCoins !== 1 ? 's' : ''} worth $${balances.totalUSD.toFixed(2)}`
-                : isConnected 
-                ? 'Consider adding XLM to your wallet'
-                : 'Connect your wallet to see real-time balance insights'
+                : isConnected
+                  ? 'Consider adding XLM to your wallet'
+                  : 'Connect your wallet to see real-time balance insights'
               }
             </div>
           </div>

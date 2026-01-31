@@ -49,9 +49,9 @@ interface MarketAnalysis {
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 
 const cryptoIds: { [key: string]: string } = {
-  'ethereum': 'ethereum',
-  'eth': 'ethereum',
-  'mnee': 'mnee',
+  'stellar': 'stellar',
+  'xlm': 'stellar',
+  'lumens': 'stellar',
   'bitcoin': 'bitcoin',
   'btc': 'bitcoin',
   'usdc': 'usd-coin',
@@ -90,41 +90,41 @@ const formatVolume = (volume: number): string => {
 
 const analyzeMarket = (priceData: PriceData): MarketAnalysis => {
   const { price, change24h, volume, ath, atl } = priceData;
-  
+
   // Trend analysis
   let trend: 'bullish' | 'bearish' | 'sideways' = 'sideways';
   if (change24h > 5) trend = 'bullish';
   else if (change24h < -5) trend = 'bearish';
-  
+
   // Volatility analysis
   let volatility: 'low' | 'medium' | 'high' = 'medium';
   if (Math.abs(change24h) < 2) volatility = 'low';
   else if (Math.abs(change24h) > 10) volatility = 'high';
-  
+
   // Momentum analysis
   let momentum: 'strong_up' | 'weak_up' | 'neutral' | 'weak_down' | 'strong_down' = 'neutral';
   if (change24h > 10) momentum = 'strong_up';
   else if (change24h > 2) momentum = 'weak_up';
   else if (change24h < -10) momentum = 'strong_down';
   else if (change24h < -2) momentum = 'weak_down';
-  
+
   // Support and resistance (simplified)
   const support = ath ? price * 0.8 : price * 0.9;
   const resistance = atl ? price * 1.2 : price * 1.1;
-  
+
   // Generate summary
   let summary = `Market is showing ${trend} sentiment with ${volatility} volatility. `;
   if (ath && price) {
     const distanceFromATH = ((ath - price) / ath) * 100;
     summary += `Currently ${distanceFromATH.toFixed(1)}% below all-time high. `;
   }
-  
+
   if (volume < 50000000) {
     summary += `Low volume suggests consolidation phase.`;
   } else {
     summary += `High volume indicates strong market interest.`;
   }
-  
+
   return { trend, volatility, momentum, support, resistance, summary };
 };
 
@@ -132,20 +132,20 @@ export const fetchCryptoPrice = async (cryptoName: string): Promise<PriceData | 
   try {
     const cleanName = cryptoName.toLowerCase().trim();
     const cryptoId = cryptoIds[cleanName] || cleanName;
-    
+
     console.log(`Fetching comprehensive data for: ${cryptoName} (ID: ${cryptoId})`);
-    
+
     const response = await fetch(
       `${COINGECKO_API}/coins/${cryptoId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`
     );
-    
+
     if (!response.ok) {
       console.error(`API request failed: ${response.status}`);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     return {
       price: data.market_data?.current_price?.usd || 0,
       marketCap: data.market_data?.market_cap?.usd || 0,
@@ -173,16 +173,16 @@ export const fetchHistoricalData = async (cryptoName: string, days: number = 30)
   try {
     const cleanName = cryptoName.toLowerCase().trim();
     const cryptoId = cryptoIds[cleanName] || cleanName;
-    
+
     const response = await fetch(
       `${COINGECKO_API}/coins/${cryptoId}/market_chart?vs_currency=usd&days=${days}&interval=daily`
     );
-    
+
     if (!response.ok) {
       console.error(`Historical data request failed: ${response.status}`);
       return null;
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error fetching historical data:', error);
@@ -196,19 +196,19 @@ export const fetchMultipleCryptoPrices = async (cryptoNames: string[]): Promise<
       const cleanName = name.toLowerCase().trim();
       return cryptoIds[cleanName] || cleanName;
     }).join(',');
-    
+
     const response = await fetch(
       `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h,7d`
     );
-    
+
     if (!response.ok) {
       console.error(`Multiple prices API request failed: ${response.status}`);
       return {};
     }
-    
+
     const data: CryptoPrice[] = await response.json();
     const result: { [key: string]: PriceData } = {};
-    
+
     data.forEach(coin => {
       result[coin.id] = {
         price: coin.current_price,
@@ -222,7 +222,7 @@ export const fetchMultipleCryptoPrices = async (cryptoNames: string[]): Promise<
         lastUpdated: coin.last_updated
       };
     });
-    
+
     return result;
   } catch (error) {
     console.error('Error fetching multiple crypto prices:', error);
@@ -237,7 +237,7 @@ export const formatPriceResponse = (priceData: PriceData, cryptoName: string): s
   const change24h = priceData.change24h;
   const changeColor = change24h >= 0 ? '📈' : '📉';
   const changeSign = change24h >= 0 ? '+' : '';
-  
+
   let response = `💰 **${cryptoName.toUpperCase()} Live Analysis**
 
 🏷️ **Current Price:** ${price}
@@ -269,7 +269,7 @@ export const formatPriceResponse = (priceData: PriceData, cryptoName: string): s
   response += `\n\n🧠 **AI Analysis:**\n${analysis.summary}`;
 
   response += `\n\n*Live data updated: ${new Date(priceData.lastUpdated).toLocaleString()}*`;
-  
+
   return response;
 };
 
@@ -279,13 +279,13 @@ export const getAdvancedAnalysis = async (cryptoName: string): Promise<string> =
       fetchCryptoPrice(cryptoName),
       fetchHistoricalData(cryptoName, 30)
     ]);
-    
+
     if (!priceData) {
       return `Unable to fetch data for ${cryptoName}. Please check the spelling or try another cryptocurrency.`;
     }
-    
+
     const analysis = analyzeMarket(priceData);
-    
+
     return `🔍 **Advanced ${cryptoName.toUpperCase()} Analysis**
 
 📊 **Technical Indicators:**
@@ -309,38 +309,37 @@ ${analysis.summary}
 
 export const getMarketSummary = async (): Promise<string> => {
   try {
-    const topCryptos = await fetchMultipleCryptoPrices(['bitcoin', 'ethereum', 'cardano', 'solana']);
-    
+    const topCryptos = await fetchMultipleCryptoPrices(['bitcoin', 'stellar', 'cardano', 'solana']);
+
     if (Object.keys(topCryptos).length === 0) {
       return "Unable to fetch current market data. Please try again later.";
     }
-    
+
     let summary = "📊 **Live Crypto Market Dashboard**\n\n";
-    
+
     const cryptoNames: { [key: string]: string } = {
       'bitcoin': 'Bitcoin (BTC)',
-      'ethereum': 'Ethereum (ETH)', 
-      'mnee': 'MNEE (USD Stablecoin)',
+      'stellar': 'Stellar (XLM)',
       'cardano': 'Cardano (ADA)',
       'solana': 'Solana (SOL)'
     };
-    
+
     Object.entries(topCryptos).forEach(([id, data]) => {
       const name = cryptoNames[id] || id;
       const changeIcon = data.change24h >= 0 ? '📈' : '📉';
       const changeColor = data.change24h >= 0 ? '🟢' : '🔴';
-      
+
       summary += `${changeColor} **${name}**\n`;
       summary += `   Price: ${formatPrice(data.price)} ${changeIcon} ${data.change24h >= 0 ? '+' : ''}${data.change24h.toFixed(2)}%\n`;
       summary += `   MCap: ${formatMarketCap(data.marketCap)} | Vol: ${formatVolume(data.volume)}\n\n`;
     });
-    
+
     // Add market sentiment
     const avgChange = Object.values(topCryptos).reduce((sum, crypto) => sum + crypto.change24h, 0) / Object.keys(topCryptos).length;
     const sentiment = avgChange > 2 ? '🟢 BULLISH' : avgChange < -2 ? '🔴 BEARISH' : '🟡 NEUTRAL';
-    
+
     summary += `🧠 **Market Sentiment:** ${sentiment} (Avg: ${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%)`;
-    
+
     return summary;
   } catch (error) {
     console.error('Error getting market summary:', error);

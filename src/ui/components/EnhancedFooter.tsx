@@ -5,15 +5,15 @@ import * as SubframeUtils from "../utils";
 import { LinkButton } from "./LinkButton";
 import { IconButton } from "./IconButton";
 import Squares from "../../components/Squares";
-import { 
-  Twitter, 
-  Github, 
-  Linkedin, 
-  Mail, 
-  Globe, 
-  Shield, 
-  Clock, 
-  DollarSign, 
+import {
+  Twitter,
+  Github,
+  Linkedin,
+  Mail,
+  Globe,
+  Shield,
+  Clock,
+  DollarSign,
   Bot,
   ExternalLink,
   Play
@@ -59,11 +59,11 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                   <span className="text-3xl">⚡</span>
                   <span className="font-['Montserrat'] text-xl font-[800] text-neutral-900">Gemetra</span>
                 </div>
-                
+
                 <p className="text-neutral-600 mb-4 text-sm leading-relaxed">
                   Borderless payments infrastructure built on Stellar with XLM for fast, low-cost global transactions.
                 </p>
-                
+
                 {/* Social Links */}
                 <div className="flex items-center gap-2 mb-4">
                   <a
@@ -91,14 +91,14 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                     <Linkedin size={16} className="text-neutral-600 group-hover:text-purple-600 transition-colors" />
                   </a>
                 </div>
-                
+
                 {/* Security Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
                   <Shield size={14} className="text-green-600" />
                   <span className="text-green-700 text-xs font-medium">Enterprise-grade security</span>
                 </div>
               </div>
-              
+
               {/* Links Sections */}
               <div className="col-span-1 md:col-span-2">
                 <h4 className="font-['Montserrat'] text-sm font-[700] mb-4 text-neutral-900">
@@ -119,7 +119,7 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                   </a>
                 </div>
               </div>
-              
+
               <div className="col-span-1 md:col-span-2">
                 <h4 className="font-['Montserrat'] text-sm font-[700] mb-4 text-neutral-900">
                   Company
@@ -139,7 +139,7 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                   </a>
                 </div>
               </div>
-              
+
               <div className="col-span-1 md:col-span-2">
                 <h4 className="font-['Montserrat'] text-sm font-[700] mb-4 text-neutral-900">
                   Resources
@@ -165,32 +165,32 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                   </a>
                 </div>
               </div>
-              
+
               <div className="col-span-1 md:col-span-2">
                 <h4 className="font-['Montserrat'] text-sm font-[700] mb-4 text-neutral-900">
                   Contact
                 </h4>
                 <div className="flex flex-col gap-3">
-                  <a 
-                    href="mailto:amaansayyad2001@gmail.com" 
+                  <a
+                    href="mailto:amaansayyad2001@gmail.com"
                     className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
                   >
                     <Mail size={14} />
                     <span className="text-sm">amaansayyad2001@gmail.com</span>
                   </a>
-                  <a 
-                    href="https://gemetra-mnee.vercel.app/" 
+                  <a
+                    href="https://gemetra-mnee.vercel.app/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
                   >
                     <Globe size={14} />
-                    <span className="text-sm">gemetra-mnee.vercel.app</span>
+                    <span className="text-sm">Gemetra App</span>
                   </a>
                 </div>
               </div>
             </div>
-            
+
             {/* Features Highlight */}
             <div className="mt-8 pt-6 border-t border-neutral-200">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -212,7 +212,7 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                 </div>
               </div>
             </div>
-            
+
             {/* Bottom Section */}
             <div className="mt-6 pt-6 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex flex-col md:flex-row items-center gap-4 text-sm">

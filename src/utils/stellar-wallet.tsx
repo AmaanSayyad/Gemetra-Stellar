@@ -18,10 +18,10 @@ import { getCurrentNetwork } from '../config/stellar';
 export interface WalletState {
   /** Whether a wallet is currently connected */
   isConnected: boolean;
-  
+
   /** The connected wallet's public key (Stellar address) */
   publicKey: string | null;
-  
+
   /** The type of wallet currently connected */
   walletType: StellarWalletType | null;
 }
@@ -32,7 +32,7 @@ export interface WalletState {
 export interface StellarWalletManagerConfig {
   /** Network to connect to (mainnet or testnet) */
   network: 'mainnet' | 'testnet';
-  
+
   /** Array of allowed wallet types */
   allowedWallets: StellarWalletType[];
 }
@@ -43,10 +43,10 @@ export interface StellarWalletManagerConfig {
 export interface ConnectResult {
   /** The connected wallet's public key */
   publicKey: string;
-  
+
   /** Whether the connection was successful */
   success: boolean;
-  
+
   /** Error message if connection failed */
   error?: string;
 }
@@ -57,10 +57,10 @@ export interface ConnectResult {
 export interface SignTransactionResult {
   /** The signed transaction XDR */
   signedXdr: string;
-  
+
   /** Whether the signing was successful */
   success: boolean;
-  
+
   /** Error message if signing failed */
   error?: string;
 }
@@ -83,7 +83,7 @@ export class StellarWalletManager {
    */
   constructor(config: StellarWalletManagerConfig) {
     this.config = config;
-    
+
     // Initialize wallet state
     this.walletState = {
       isConnected: false,
@@ -92,8 +92,8 @@ export class StellarWalletManager {
     };
 
     // Convert network to Stellar Wallets Kit format
-    const network = config.network === 'mainnet' 
-      ? WalletNetwork.PUBLIC 
+    const network = config.network === 'mainnet'
+      ? WalletNetwork.PUBLIC
       : WalletNetwork.TESTNET;
 
     // Initialize Stellar Wallets Kit
@@ -105,73 +105,91 @@ export class StellarWalletManager {
   }
 
   /**
-   * Connect to a Stellar wallet
+   * Connect to a Stellar wallet using the Stellar Wallets Kit modal
    * 
-   * @param walletType - The type of wallet to connect to
    * @returns Promise resolving to connection result
    */
-  async connect(walletType: StellarWalletType): Promise<ConnectResult> {
+  async connect(): Promise<ConnectResult> {
     try {
-      // Set the selected wallet in the kit
-      const walletId = walletType === StellarWalletType.Freighter ? FREIGHTER_ID : ALBEDO_ID;
-      this.kit.setWallet(walletId);
+      console.log('Opening Stellar Wallets Kit modal...');
 
-      // Check if wallet is installed (for Freighter)
-      if (walletType === StellarWalletType.Freighter && !this.isWalletInstalled(walletType)) {
-        return {
-          publicKey: '',
-          success: false,
-          error: 'Freighter wallet is not installed. Please install it from the Chrome Web Store.',
-        };
-      }
+      return new Promise<ConnectResult>(async (resolve) => {
+        let isResolved = false;
 
-      // Open modal and get public key
-      const result = await this.kit.openModal({
-        onWalletSelected: async () => {
-          // Wallet selected callback
-        },
+        try {
+          await this.kit.openModal({
+            onWalletSelected: async (option: any) => {
+              try {
+                console.log('Wallet selected:', option);
+                this.kit.setWallet(option.id);
+
+                // Get public key after setting wallet
+                // Note: getAddress returns { address: string }
+                const { address: publicKey } = await this.kit.getAddress();
+                console.log('Public key retrieved:', publicKey);
+
+                // Determine wallet type using the selected option ID
+                const walletType = option.id === FREIGHTER_ID
+                  ? StellarWalletType.Freighter
+                  : StellarWalletType.Albedo;
+
+                // Update wallet state
+                this.walletState = {
+                  isConnected: true,
+                  publicKey,
+                  walletType,
+                };
+
+                if (!isResolved) {
+                  isResolved = true;
+                  resolve({
+                    publicKey,
+                    success: true,
+                  });
+                }
+              } catch (err: any) {
+                console.error('Error in onWalletSelected:', err);
+                if (!isResolved) {
+                  isResolved = true;
+                  resolve({
+                    publicKey: '',
+                    success: false,
+                    error: err.message || 'Failed to connect after selection',
+                  });
+                }
+              }
+            },
+            onClosed: (err?: Error) => {
+              console.log('Modal closed', err);
+              if (!isResolved) {
+                isResolved = true;
+                resolve({
+                  publicKey: '',
+                  success: false,
+                  error: 'Connection cancelled'
+                });
+              }
+            }
+          });
+
+          // Note: If openModal resolves immediately (as seen in logs), we simply wait for the callback.
+          // If the user closes the modal without selection, there might be no callback. 
+          // Ideally, we'd handle onClosed if supported, or rely on a timeout/cancellation mechanism.
+
+        } catch (error: any) {
+          console.error('Error opening modal:', error);
+          if (!isResolved) {
+            isResolved = true;
+            resolve({
+              publicKey: '',
+              success: false,
+              error: error.message || 'Failed to connect wallet',
+            });
+          }
+        }
       });
-
-      // Extract address from result
-      const address = (result as any).address || (result as any).publicKey;
-      
-      if (!address) {
-        return {
-          publicKey: '',
-          success: false,
-          error: 'Failed to retrieve wallet address.',
-        };
-      }
-
-      // Update wallet state
-      this.walletState = {
-        isConnected: true,
-        publicKey: address,
-        walletType,
-      };
-
-      return {
-        publicKey: address,
-        success: true,
-      };
     } catch (error: any) {
-      // Handle specific error cases
-      if (error.message?.includes('User rejected')) {
-        return {
-          publicKey: '',
-          success: false,
-          error: 'Connection rejected. Please approve the connection request.',
-        };
-      }
-      
-      if (error.message?.includes('locked')) {
-        return {
-          publicKey: '',
-          success: false,
-          error: 'Wallet is locked. Please unlock your wallet and try again.',
-        };
-      }
-
+      console.error('Wallet connection error:', error);
       return {
         publicKey: '',
         success: false,
@@ -273,11 +291,11 @@ export class StellarWalletManager {
       case StellarWalletType.Freighter:
         // Freighter injects itself as window.freighter
         return typeof (window as any).freighter !== 'undefined';
-      
+
       case StellarWalletType.Albedo:
         // Albedo is web-based and always available
         return true;
-      
+
       default:
         return false;
     }
@@ -294,22 +312,22 @@ export class StellarWalletManager {
 interface StellarWalletContextValue {
   /** Current wallet state */
   walletState: WalletState;
-  
-  /** Connect to a wallet */
-  connect: (walletType: StellarWalletType) => Promise<void>;
-  
+
+  /** Connect to a wallet using Stellar Wallets Kit modal */
+  connect: () => Promise<void>;
+
   /** Disconnect the current wallet */
   disconnect: () => Promise<void>;
-  
+
   /** Sign a transaction with the connected wallet */
   signTransaction: (xdr: string) => Promise<string>;
-  
+
   /** Check if a wallet is installed */
   isWalletInstalled: (walletType: StellarWalletType) => boolean;
-  
+
   /** Error message if any operation failed */
   error: string | null;
-  
+
   /** Loading state for async operations */
   isLoading: boolean;
 }
@@ -325,10 +343,10 @@ const StellarWalletContext = createContext<StellarWalletContextValue | undefined
 interface StellarWalletProviderProps {
   /** Child components */
   children: ReactNode;
-  
+
   /** Network to connect to (defaults to current network from config) */
   network?: 'mainnet' | 'testnet';
-  
+
   /** Allowed wallet types (defaults to all) */
   allowedWallets?: StellarWalletType[];
 }
@@ -339,14 +357,14 @@ interface StellarWalletProviderProps {
  * Wraps the application and provides wallet management functionality
  * to all child components via React Context.
  */
-export function StellarWalletProvider({ 
-  children, 
+export function StellarWalletProvider({
+  children,
   network,
   allowedWallets = [StellarWalletType.Freighter, StellarWalletType.Albedo]
 }: StellarWalletProviderProps) {
   // Get current network from config if not provided
   const currentNetwork = network || getCurrentNetwork();
-  
+
   // Initialize wallet manager
   const [walletManager] = useState(() => new StellarWalletManager({
     network: currentNetwork,
@@ -359,15 +377,15 @@ export function StellarWalletProvider({
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Connect to a wallet
+   * Connect to a wallet using Stellar Wallets Kit modal
    */
-  const connect = useCallback(async (walletType: StellarWalletType) => {
+  const connect = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const result = await walletManager.connect(walletType);
-      
+      const result = await walletManager.connect();
+
       if (result.success) {
         setWalletState(walletManager.getWalletState());
       } else {
@@ -386,7 +404,7 @@ export function StellarWalletProvider({
   const disconnect = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await walletManager.disconnect();
       setWalletState(walletManager.getWalletState());
@@ -403,10 +421,10 @@ export function StellarWalletProvider({
   const signTransaction = useCallback(async (xdr: string): Promise<string> => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await walletManager.signTransaction(xdr);
-      
+
       if (result.success) {
         return result.signedXdr;
       } else {
@@ -479,10 +497,10 @@ export function StellarWalletProvider({
  */
 export function useStellarWallet(): StellarWalletContextValue {
   const context = useContext(StellarWalletContext);
-  
+
   if (context === undefined) {
     throw new Error('useStellarWallet must be used within a StellarWalletProvider');
   }
-  
+
   return context;
 }
