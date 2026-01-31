@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, CheckCircle, Clock, AlertCircle, Search, Download, ExternalLink, FileText, User, Calendar, DollarSign } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import { supabase } from '../lib/supabase';
 import type { Payment } from '../lib/supabase';
 
 // Admin wallet address - Dubai Government VAT employees
-const ADMIN_ADDRESS = '0xF7249B507F1f89Eaea5d694cEf5cb96F245Bc5b6';
+const ADMIN_ADDRESS = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H'; // Replace with actual Stellar admin address
 
 interface VATRefundAdmin {
   id: string;
@@ -34,7 +34,9 @@ interface VATRefundAdmin {
 }
 
 export const VATAdminPage: React.FC = () => {
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [refunds, setRefunds] = useState<VATRefundAdmin[]>([]);
@@ -413,8 +415,8 @@ export const VATAdminPage: React.FC = () => {
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
                         <img
-                          src="/mnee.png"
-                          alt="MNEE"
+                          src="/xlm.png"
+                          alt="XLM"
                           className="h-5 w-5 object-contain"
                         />
                         <span className="text-sm font-semibold text-gray-900">
@@ -425,8 +427,8 @@ export const VATAdminPage: React.FC = () => {
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center">
                       <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                         <img
-                          src="/mnee.png"
-                          alt="MNEE"
+                          src="/xlm.png"
+                          alt="XLM"
                           className="h-3.5 w-3.5 object-contain"
                         />
                         {refund.token}
@@ -453,7 +455,11 @@ export const VATAdminPage: React.FC = () => {
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                       {refund.transaction_hash ? (
                         <a
-                          href={`https://etherscan.io/tx/${refund.transaction_hash}`}
+                          href={
+                            refund.token === 'XLM' || refund.token === 'Stellar'
+                              ? `https://stellar.expert/explorer/public/tx/${refund.transaction_hash}`
+                              : `https://etherscan.io/tx/${refund.transaction_hash}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-mono text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-all hover:shadow-sm"
@@ -574,12 +580,18 @@ export const VATAdminPage: React.FC = () => {
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Refund Amount</h3>
                   <div className="flex items-center gap-2">
-                    <img src="/mnee.png" alt="MNEE" className="h-5 w-5" />
-                    <span className="text-lg font-bold text-gray-900">{selectedRefund.amount.toFixed(2)} {selectedRefund.token}</span>
+                    <img src="/xlm.png" alt="Token" className="h-5 w-5" />
+                    <span className="text-lg font-bold text-gray-900">
+                      {selectedRefund.token === 'XLM' ? selectedRefund.amount.toFixed(7) : selectedRefund.amount.toFixed(2)} {selectedRefund.token}
+                    </span>
                   </div>
                   {selectedRefund.transaction_hash && (
                     <a
-                      href={`https://etherscan.io/tx/${selectedRefund.transaction_hash}`}
+                      href={
+                        selectedRefund.token === 'XLM' || selectedRefund.token === 'Stellar'
+                          ? `https://stellar.expert/explorer/public/tx/${selectedRefund.transaction_hash}`
+                          : `https://etherscan.io/tx/${selectedRefund.transaction_hash}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-600 hover:text-blue-800 transition-colors"
@@ -719,7 +731,11 @@ export const VATAdminPage: React.FC = () => {
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <label className="text-xs text-gray-600 mb-1 block">Transaction Hash</label>
                       <a
-                        href={`https://etherscan.io/tx/${selectedRefund.transaction_hash}`}
+                        href={
+                          selectedRefund.token === 'XLM' || selectedRefund.token === 'Stellar'
+                            ? `https://stellar.expert/explorer/public/tx/${selectedRefund.transaction_hash}`
+                            : `https://etherscan.io/tx/${selectedRefund.transaction_hash}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-mono text-xs"

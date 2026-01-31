@@ -1,13 +1,13 @@
-# 🌍 Gemetra-MNEE
+# 🌍 Gemetra
 
 **Global Remittance Infrastructure for VAT Refunds & Payroll**  
-Wallet-native. AI-powered. Borderless. Built on Ethereum with MNEE stablecoin.
+Wallet-native. AI-powered. Borderless. Built on Stellar with XLM.
 
 ## 🎥 Demo Video
 
 <p align="center">
   <a href="https://youtu.be/FEmaygRs1gs" target="_blank" rel="noopener noreferrer">
-    <img src="public/Landingpage.png" alt="Gemetra-MNEE Landing Page Demo" width="720"/>
+    <img src="public/Landingpage.png" alt="Gemetra Landing Page Demo" width="720"/>
   </a>
 </p>
 
@@ -18,15 +18,15 @@ Wallet-native. AI-powered. Borderless. Built on Ethereum with MNEE stablecoin.
 
 ## 🚀 Overview
 
-**Gemetra-MNEE** is an **on-chain VAT Refund & Payroll Payment Infrastructure** built for the **MNEE Hackathon: Programmable Money for Agents, Commerce, and Automated Finance**.
+**Gemetra** is an **on-chain VAT Refund & Payroll Payment Infrastructure** built on the **Stellar blockchain**.
 
-Using **MNEE**, a USD-backed stablecoin on Ethereum (Contract: `0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF`), this platform enables:
+Using **XLM** (Stellar Lumens), the native cryptocurrency of the Stellar network, this platform enables:
 
-1. **VAT Refunds** – Tourists submit refund requests → receive instant MNEE stablecoin payments on Ethereum.
+1. **VAT Refunds** – Tourists submit refund requests → receive instant XLM payments on Stellar.
 2. **VAT Admin Panel** – Government VAT employees can view, filter, and export all VAT refund claims with complete details (receipt info, personal info, merchant info, payment details).
-3. **Payroll Automation** – Employers upload CSV → AI computes salaries → employees receive MNEE payments instantly.
+3. **Payroll Automation** – Employers upload CSV → AI computes salaries → employees receive XLM payments instantly.
 4. **Scheduled Payments** – Automate recurring and one-time payments with calendar view and pre-approval system.
-5. **Points & Rewards** – Earn points for transactions and convert to MNEE tokens.
+5. **Points & Rewards** – Earn points for transactions and convert to XLM tokens.
 6. **AI Assistant** – Get instant answers about payroll, payments, and blockchain technology.
 
 ---
@@ -41,12 +41,12 @@ Using **MNEE**, a USD-backed stablecoin on Ethereum (Contract: `0x8ccedbAe4916b7
 
 ## ✅ Solution
 
-**Gemetra-MNEE** provides a **wallet-native remittance infrastructure** where:
-- Tourists **receive VAT refunds** instantly in MNEE stablecoin on Ethereum.
+**Gemetra** provides a **wallet-native remittance infrastructure** where:
+- Tourists **receive VAT refunds** instantly in XLM on Stellar.
 - Employers **disburse payroll globally** with a single transaction.
 - **Automated scheduled payments** for recurring payroll and one-time future payments.
-- **Points system** rewards users for transactions and converts to MNEE.
-- Ethereum blockchain ensures **transparency** and **programmable money** capabilities.
+- **Points system** rewards users for transactions and converts to XLM.
+- Stellar blockchain ensures **transparency**, **speed** (3-5 second confirmations), and **low fees** (0.00001 XLM per transaction).
 
 ---
 
@@ -57,7 +57,7 @@ flowchart TB
     subgraph "Client Layer"
         WEB["🌐 Web App<br/>(React + Vite)"]
         MOBILE["📱 Mobile<br/>(Responsive)"]
-        WALLET["💼 Wallets<br/>(MetaMask/WalletConnect)"]
+        WALLET["💼 Wallets<br/>(Freighter/Albedo)"]
     end
 
     subgraph "Application Layer"
@@ -73,13 +73,13 @@ flowchart TB
     end
 
     subgraph "Blockchain Layer"
-        ETH["⛓️ Ethereum Network<br/>(Mainnet/Sepolia)"]
-        MNEE["💰 MNEE Contract<br/>0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF"]
-        WAGMI["🔌 Wagmi<br/>(Wallet Integration)"]
+        STELLAR["⛓️ Stellar Network<br/>(Mainnet/Testnet)"]
+        XLM["💰 XLM<br/>(Native Token)"]
+        WALLETKIT["🔌 Stellar Wallets Kit<br/>(Wallet Integration)"]
     end
 
     subgraph "External Services"
-        ETHERSCAN["🔍 Etherscan<br/>(Tx Verification)"]
+        EXPLORER["🔍 Stellar Expert<br/>(Tx Verification)"]
         PRICE["💵 Price API<br/>(Crypto Prices)"]
     end
 
@@ -90,13 +90,13 @@ flowchart TB
     SERVICES --> SUPABASE
     SERVICES --> AI
     SERVICES --> EMAIL
-    HOOKS --> WAGMI
-    WAGMI --> WALLET
-    WALLET --> ETH
-    ETH --> MNEE
-    ETH --> ETHERSCAN
+    HOOKS --> WALLETKIT
+    WALLETKIT --> WALLET
+    WALLET --> STELLAR
+    STELLAR --> XLM
+    STELLAR --> EXPLORER
     SERVICES --> PRICE
-    ETHERSCAN --> UI
+    EXPLORER --> UI
 ```
 
 ---
@@ -130,6 +130,7 @@ erDiagram
         text department
         decimal salary
         text wallet_address
+        text legacy_eth_address
         date join_date
         text status
         timestamptz created_at
@@ -145,6 +146,10 @@ erDiagram
         text status
         timestamptz payment_date
         jsonb vat_refund_details
+        text blockchain_type
+        text network
+        text memo
+        integer ledger
         timestamptz created_at
     }
 
@@ -203,7 +208,7 @@ erDiagram
         uuid id PK
         text user_id
         integer points
-        decimal mnee_amount
+        decimal xlm_amount
         decimal conversion_rate
         text transaction_hash
         text status
@@ -224,7 +229,7 @@ sequenceDiagram
     participant AI Service
     participant Preview Modal
     participant Wallet
-    participant Ethereum
+    participant Stellar
     participant Supabase
     participant Points System
 
@@ -241,16 +246,16 @@ sequenceDiagram
     
     Employer->>Preview Modal: Approve Payments
     Preview Modal->>Wallet: Request Transaction
-    Wallet->>Employer: Show MetaMask Popup
+    Wallet->>Employer: Show Wallet Popup
     Employer->>Wallet: Confirm Transaction
-    Wallet->>Ethereum: Send MNEE Transfers
+    Wallet->>Stellar: Send XLM Transfers
     
     loop For Each Employee
-        Ethereum->>Ethereum: Execute ERC20 Transfer
-        Ethereum-->>Supabase: Store Payment Record
+        Stellar->>Stellar: Execute Payment Operation
+        Stellar-->>Supabase: Store Payment Record
     end
     
-    Ethereum-->>Preview Modal: Transaction Hashes
+    Stellar-->>Preview Modal: Transaction Hashes
     Preview Modal->>Points System: Award Points (5 per employee)
     Points System->>Supabase: Store Point Transaction
     Preview Modal-->>Employer: Payment Success
@@ -267,7 +272,7 @@ sequenceDiagram
     participant Document Processor
     participant Review Step
     participant Wallet
-    participant Ethereum
+    participant Stellar
     participant Supabase
     participant Points System
     participant QR Code
@@ -289,12 +294,12 @@ sequenceDiagram
     Review Step->>Supabase: Create Pending Record<br/>(with VAT details in JSONB)
     Review Step->>QR Code: Generate Payment QR
     Review Step->>Wallet: Request Transaction
-    Wallet->>Tourist: Show MetaMask Popup
+    Wallet->>Tourist: Show Wallet Popup
     Tourist->>Wallet: Confirm Transaction
-    Wallet->>Ethereum: Send MNEE Transfer
+    Wallet->>Stellar: Send XLM Transfer
     
-    Ethereum->>Ethereum: Execute ERC20 Transfer
-    Ethereum-->>Supabase: Update Record (completed)
+    Stellar->>Stellar: Execute Payment Operation
+    Stellar-->>Supabase: Update Record (completed)
     Supabase-->>Review Step: Transaction Hash
     Review Step->>Points System: Award 15 Points
     Points System->>Supabase: Store Point Transaction
@@ -339,7 +344,7 @@ flowchart TD
     MANUAL --> POPUP[Show MetaMask Popup]
     POPUP --> WALLET
     
-    WALLET --> ETH[Execute on Ethereum]
+    WALLET --> ETH[Execute on Stellar]
     ETH --> UPDATE[Update Status]
     UPDATE --> POINTS[Award 3 Points]
     POINTS --> NOTIFY[Notify Employee]
@@ -374,9 +379,9 @@ flowchart LR
     end
     
     subgraph "Conversion"
-        CONVERT[Convert to MNEE<br/>100 points = 1 MNEE]
+        CONVERT[Convert to XLM<br/>100 points = 1 XLM]
         MINIMUM{Minimum<br/>100 points?}
-        TRANSFER[Send MNEE Tokens<br/>to Wallet]
+        TRANSFER[Send XLM Tokens<br/>to Wallet]
     end
     
     PAYMENT --> LOCAL
@@ -526,7 +531,7 @@ graph TB
     end
     
     subgraph "Utils"
-        ETH[ethereum.ts<br/>Wallet & Transaction Utils]
+        STELLAR[stellar.ts<br/>Wallet & Transaction Utils]
         EMAIL[emailService.ts]
     end
     
@@ -561,16 +566,16 @@ graph TB
     AI --> HOOKS
     
     HOOKS --> SERVICES
-    HOOKS --> ETH
-    SERVICES --> ETH
-    MODALS --> ETH
+    HOOKS --> STELLAR
+    SERVICES --> STELLAR
+    MODALS --> STELLAR
 ```
 
 ---
 
 ## 🔮 Features
 
-- **Wallet-Native UX**: Connect any Ethereum wallet → confirm → receive MNEE.
+- **Wallet-Native UX**: Connect any Stellar wallet → confirm → receive XLM.
 - **Tourism-Grade Simplicity**: Refunds in 3 steps → Upload → Review → Confirm.
 - **VAT Admin Dashboard**: 
   - Wallet-based access control for authorized government employees
@@ -578,38 +583,39 @@ graph TB
   - Filter by status, date, and search by address/ID/transaction
   - Export all data to CSV for compliance and reporting
   - Real-time updates with auto-refresh every 5 seconds
-- **Enterprise Payroll**: AI-driven salary parsing and bulk MNEE payouts.
+- **Enterprise Payroll**: AI-driven salary parsing and bulk XLM payouts.
 - **Scheduled & Recurring Payments**: 
   - Schedule one-time or recurring payments (daily, weekly, bi-weekly, monthly)
   - Calendar view to visualize all scheduled payments
-  - Pre-approval system for automatic processing without MetaMask popups
+  - Pre-approval system for automatic processing without wallet popups
   - Auto-process payments within pre-approved spending limits
 - **Points & Rewards System**:
   - Earn points for every transaction (10 points per payment, 15 for VAT refunds)
-  - Convert 100 points = 1 MNEE token
+  - Convert 100 points = 1 XLM token
   - Complete transaction history
 - **AI Assistant**:
   - 65+ pre-loaded questions
   - Real-time crypto price information
   - Company and payroll insights
   - Chat history persistence
-- **Transparency**: All transactions on Ethereum blockchain with public audit trail.
+- **Transparency**: All transactions on Stellar blockchain with public audit trail.
 - **Compliance Ready**: Supabase logs + JSON/CSV exports for regulators and finance teams.
 - **VAT Refund Details Storage**: All form data (VAT reg number, receipt number, passport, flight, merchant info, etc.) stored in JSONB column for complete audit trail.
-- **MNEE Integration**: Built specifically for MNEE stablecoin on Ethereum.
+- **Stellar Integration**: Built on Stellar for fast (3-5 second) confirmations and low fees (0.00001 XLM per transaction).
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Blockchain**: Ethereum (Mainnet/Sepolia)
-  - MNEE Stablecoin Contract: `0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF`
-  - ERC20 token standard for programmable money.
+- **Blockchain**: Stellar (Mainnet/Testnet)
+  - XLM (Stellar Lumens) - Native cryptocurrency
+  - Fast confirmations (3-5 seconds)
+  - Low fees (0.00001 XLM per transaction)
 
-- **Wallet Integration**: Wagmi
-  - Supports MetaMask, WalletConnect, Coinbase Wallet, Nightly, and more.
-  - Mobile-first signing with QR scan/deep link support.
-  - Custom wallet selection modal with filtering and ordering.
+- **Wallet Integration**: Stellar Wallets Kit
+  - Supports Freighter (browser extension) and Albedo (web-based)
+  - Mobile-first signing with QR scan/deep link support
+  - Custom wallet selection modal
 
 - **AI Layer**: Google Gemini
   - Natural language processing for payroll insights
@@ -617,15 +623,15 @@ graph TB
   - Company financial analysis
 
 - **Backend**: [Supabase](https://supabase.com/)
-  - Postgres DB, object storage, user audit logs, and compliance artifacts.
+  - Postgres DB, object storage, user audit logs, and compliance artifacts
   - Row Level Security (RLS) for data protection
 
 - **Frontend**: React + Vite
-  - Modern UI with Tailwind CSS and Framer Motion.
+  - Modern UI with Tailwind CSS and Framer Motion
   - Responsive design for mobile and desktop
 
-- **Transaction Verification**: Etherscan API
-  - Real-time transaction tracking and verification.
+- **Transaction Verification**: Stellar Expert
+  - Real-time transaction tracking and verification
 
 ---
 
@@ -636,8 +642,8 @@ flowchart LR
     INPUT[User Input] --> VALIDATE[Validation]
     VALIDATE --> PROCESS[Processing]
     PROCESS --> STORE[(Supabase)]
-    STORE --> BLOCKCHAIN[Ethereum]
-    BLOCKCHAIN --> VERIFY[Etherscan]
+    STORE --> BLOCKCHAIN[Stellar]
+    BLOCKCHAIN --> VERIFY[Stellar Expert]
     VERIFY --> UPDATE[Update UI]
     UPDATE --> NOTIFY[Notifications]
     NOTIFY --> EXPORT[Export Reports]
@@ -655,12 +661,12 @@ flowchart LR
    - Supabase stores invoices, payruns, logs, validation proofs.
 
 4. **Execution**
-   - API encodes MNEE transfer → wallet signs & submits to Ethereum.
-   - MNEE contract executes ERC20 transfers.
+   - API creates XLM payment transaction → wallet signs & submits to Stellar.
+   - Stellar network executes native payment operations.
 
 5. **Finality**
-   - Ethereum confirms transactions.
-   - Etherscan verifies results.
+   - Stellar confirms transactions (3-5 seconds).
+   - Stellar Expert verifies results.
    - Supabase logs for audit.
 
 6. **Audit**
@@ -672,8 +678,8 @@ flowchart LR
 
 - **Wallet-Based Auth**: No passwords, wallet addresses as user IDs
 - **Row Level Security**: Supabase RLS policies ensure data isolation
-- **Transaction Verification**: All transactions verified on Etherscan
-- **Immutable Audit Trail**: Supabase DB + Ethereum tx hashes provide verifiable record-keeping
+- **Transaction Verification**: All transactions verified on Stellar Expert
+- **Immutable Audit Trail**: Supabase DB + Stellar tx hashes provide verifiable record-keeping
 - **Circuit Breakers**: Pre-approval limits prevent unauthorized large payments
 - **Data Encryption**: All sensitive data encrypted at rest and in transit
 
@@ -694,7 +700,7 @@ flowchart LR
   Pilot deployment at major airports with VAT operator integration.
 
 - **Phase 2 – Payroll**:
-  Target **DAOs, Web3 startups, and SMEs** with MNEE-based payroll rails on Ethereum.
+  Target **DAOs, Web3 startups, and SMEs** with XLM-based payroll rails on Stellar.
 
 - **Phase 3 – Enterprise Expansion**:
   Partner with **multinationals** and expand VAT refunds to EU, UK, Singapore, and Saudi Arabia.
@@ -706,37 +712,72 @@ flowchart LR
 
 ## 🔮 Roadmap
 
-- ✅ **MVP**: Wallet-native VAT refunds + CSV-based payroll automation with MNEE.
+- ✅ **MVP**: Wallet-native VAT refunds + CSV-based payroll automation with XLM.
 - ✅ **Scheduled Payments**: Calendar view, recurring payments, and pre-approval system.
-- ✅ **Points System**: Earn points for transactions, convert to MNEE.
+- ✅ **Points System**: Earn points for transactions, convert to XLM.
 - ✅ **AI Assistant**: Natural language interface for payroll and crypto questions.
 - ✅ **VAT Admin Panel**: Government dashboard for viewing, filtering, and exporting all VAT refund claims with complete details.
+- ✅ **Stellar Migration**: Migrated from Ethereum/MNEE to Stellar/XLM for faster transactions and lower fees.
 - 🔄 **Next**: Multi-country VAT support + AI-driven tax compliance engine.
 - 🔄 **Later**: Enterprise integrations, PDF-based compliance exports, multi-signature approvals.
-- 🌐 **Future**: Gemetra-MNEE DAO + full protocol governance.
+- 🌐 **Future**: Gemetra DAO + full protocol governance.
 
 ---
 
-## 🌟 Why MNEE on Ethereum?
+## 🌟 Why Stellar?
 
-Gemetra-MNEE leverages the unique advantages of MNEE stablecoin on Ethereum:
+Gemetra leverages the unique advantages of the Stellar blockchain:
 
-- **Programmable Money**: ERC20 standard enables smart contract automation and integration.
-- **USD-Backed Stability**: MNEE provides price stability for payroll and refunds.
-- **Ethereum Ecosystem**: Access to DeFi, wallets, and infrastructure.
-- **Transparency**: All transactions publicly verifiable on Ethereum blockchain.
-- **Developer-Friendly**: Standard ERC20 interface simplifies integration.
-- **Global Reach**: Ethereum's network effects enable borderless payments.
-- **Low Transaction Costs**: <1¢ per transaction
-- **Fast Settlement**: <1s settlement time
-- **Fully Backed & Regulated**: USD-backed stablecoin with regulatory compliance
+- **Lightning Fast**: 3-5 second transaction confirmations vs Ethereum's minutes.
+- **Ultra-Low Fees**: 0.00001 XLM (less than $0.0001) per transaction vs variable gas fees.
+- **Native Payments**: XLM transfers don't require smart contracts, simplifying integration.
+- **Built for Payments**: Stellar was designed specifically for cross-border payments and remittances.
+- **Global Reach**: Stellar's network effects enable true borderless payments.
+- **Developer-Friendly**: Simple APIs and SDKs make integration straightforward.
+- **Transparency**: All transactions publicly verifiable on Stellar blockchain.
+- **Proven at Scale**: Handles millions of transactions daily with 99.99% uptime.
 
 ---
 
-## 🏆 Hackathon Alignment
+## 🔄 Migration from Ethereum to Stellar
 
-This project aligns with the **MNEE Hackathon** requirements:
+**Gemetra has migrated from Ethereum/MNEE to Stellar/XLM** to provide users with faster transactions and significantly lower fees.
 
+### What Changed?
+
+- **Blockchain**: Ethereum → Stellar
+- **Token**: MNEE (ERC-20) → XLM (Native)
+- **Wallets**: MetaMask/WalletConnect → Freighter/Albedo
+- **Transaction Speed**: Minutes → 3-5 seconds
+- **Transaction Fees**: Variable gas fees → 0.00001 XLM fixed
+- **Block Explorer**: Etherscan → Stellar Expert
+
+### What Stayed the Same?
+
+- All features remain fully functional
+- Your account data and payment history are preserved
+- The user interface and experience are largely unchanged
+- Points system and rewards continue to work
+
+### Action Required
+
+**Employee Wallet Addresses**: If you have existing employees, you'll need to update their wallet addresses from Ethereum format (0x...) to Stellar format (G...). The old addresses are preserved in a legacy field for reference.
+
+**Getting Started with Stellar**:
+1. Install [Freighter wallet](https://www.freighter.app/) (browser extension) or use [Albedo](https://albedo.link/) (web-based)
+2. Create or import your Stellar account
+3. Get some XLM from an exchange or use the [Stellar testnet](https://laboratory.stellar.org/#account-creator?network=test) for testing
+4. Connect your wallet to Gemetra and start making payments
+
+For detailed setup instructions, see our [Stellar Setup Guide](docs/STELLAR_SETUP.md).
+
+---
+
+## 🏆 Original Hackathon Project
+
+This project was originally built for the **MNEE Hackathon: Programmable Money for Agents, Commerce, and Automated Finance** using MNEE stablecoin on Ethereum. It has since been migrated to Stellar for improved performance and lower costs.
+
+**Original Hackathon Alignment**:
 ✅ **Uses MNEE Stablecoin**: Contract address `0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF`  
 ✅ **Commerce & Creator Tools Track**: VAT refunds and payroll checkout systems  
 ✅ **Financial Automation Track**: Programmable invoicing and automated payroll  
@@ -782,8 +823,9 @@ Create a `.env` file in the root directory with the following variables:
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# WalletConnect (Required for wallet connections)
-VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+# Stellar Network (Required for blockchain operations)
+VITE_STELLAR_NETWORK=testnet  # or 'mainnet' for production
+VITE_HORIZON_URL=https://horizon-testnet.stellar.org  # or https://horizon.stellar.org for mainnet
 ```
 
 #### Optional Variables
@@ -800,39 +842,47 @@ VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
 
 **Quick Setup:**
 1. Copy `.env.example` to `.env` (if available)
-2. Fill in the required variables (Supabase and WalletConnect)
+2. Fill in the required variables (Supabase and Stellar)
 3. Add optional variables if you want AI or email features
 4. Restart the dev server: `npm run dev`
 
-**See `ENVIRONMENT_SETUP.md` for detailed setup instructions.**
+**See `docs/ENVIRONMENT_SETUP.md` for detailed setup instructions.**
 
-### MNEE Contract
+### Stellar Network
 
-The application uses the MNEE contract at:
-- **Address**: `0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF`
-- **Network**: Ethereum Mainnet **ONLY** (no testnet available)
-- **Standard**: ERC20
+The application supports both Stellar Mainnet and Testnet:
 
-⚠️ **Important**: MNEE only exists on Ethereum Mainnet. There is no testnet contract.
+- **Mainnet**: Production environment with real XLM
+  - Horizon URL: `https://horizon.stellar.org`
+  - Network Passphrase: `Public Global Stellar Network ; September 2015`
+
+- **Testnet**: Development environment with free test XLM
+  - Horizon URL: `https://horizon-testnet.stellar.org`
+  - Network Passphrase: `Test SDF Network ; September 2015`
+  - Get free test XLM from [Friendbot](https://laboratory.stellar.org/#account-creator?network=test)
+
+⚠️ **Important**: Always test on Stellar Testnet before using Mainnet with real XLM.
 
 **For Testing:**
-- **Option 1**: Get real MNEE tokens from Uniswap, Rockwallet, or other exchanges
-- **Option 2**: Deploy a mock ERC20 token on Sepolia for development (see `MNEE_SETUP.md`)
+- Use Stellar Testnet for development
+- Get free test XLM from Friendbot
+- Switch to Mainnet only when ready for production
 
-See `MNEE_SETUP.md` for detailed instructions on getting MNEE tokens.
+See `docs/STELLAR_SETUP.md` for detailed instructions on setting up Stellar wallets and getting XLM.
 
 ---
 
 ## 📚 Documentation
 
-- **[Environment Setup](ENVIRONMENT_SETUP.md)** - Complete setup guide
-- **[MNEE Setup](MNEE_SETUP.md)** - Getting MNEE tokens for testing
-- **[Points System](POINTS_SYSTEM.md)** - Points and rewards documentation
-- **[CSV Format Guide](CSV_FORMAT_GUIDE.md)** - Employee CSV upload format
-- **[VAT Refund Sample Data](VAT_REFUND_SAMPLE_DATA.md)** - Sample VAT refund data
-- **[VAT Document Format Guide](VAT_REFUND_DOCUMENT_FORMAT_GUIDE.md)** - Document requirements
-- **[Devpost Submission](DEVPOST_SUBMISSION.md)** - Hackathon submission details
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Environment Setup](docs/ENVIRONMENT_SETUP.md)** - Complete setup guide
+- **[Stellar Setup](docs/STELLAR_SETUP.md)** - Setting up Stellar wallets and getting XLM
+- **[Stellar Testnet Guide](docs/STELLAR_TESTNET_GUIDE.md)** - Testing with Stellar testnet
+- **[Mainnet Configuration](docs/MAINNET_CONFIGURATION.md)** - Production deployment guide
+- **[Points System](docs/POINTS_SYSTEM.md)** - Points and rewards documentation
+- **[CSV Format Guide](docs/CSV_FORMAT_GUIDE.md)** - Employee CSV upload format
+- **[VAT Refund Sample Data](docs/VAT_REFUND_SAMPLE_DATA.md)** - Sample VAT refund data
+- **[VAT Document Format Guide](docs/VAT_REFUND_DOCUMENT_FORMAT_GUIDE.md)** - Document requirements
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ---
 
@@ -841,6 +891,8 @@ See `MNEE_SETUP.md` for detailed instructions on getting MNEE tokens.
 - **Live Application**: https://gemetra-mnee.vercel.app/  
 - **GitHub Repository**: https://github.com/AmaanSayyad/Gemetra-mnee  
 - **Documentation**: https://docs.google.com/presentation/d/1CV3kaE1mY7rgmB9bTwZTBLGR6BdLryRtaHD4F3MK4M8/edit?usp=sharing
+
+**Note**: The live demo may still be running on the Ethereum/MNEE version. The Stellar migration is available in the latest code on GitHub.
 
 ---
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import type { ScheduledPayment } from '../lib/supabase';
 
 // Helper function to generate a UUID
@@ -16,7 +16,9 @@ export const useScheduledPayments = () => {
   const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   
   // Check wallet connection on hook initialization
   useEffect(() => {

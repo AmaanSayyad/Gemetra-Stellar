@@ -9,18 +9,17 @@ const synonyms: Synonym = {
   'salary': ['pay', 'wage', 'compensation', 'income', 'earnings'],
   'company': ['business', 'organization', 'firm', 'corporation', 'enterprise'],
   'blockchain': ['chain', 'ledger', 'crypto', 'cryptocurrency'],
-  'ethereum': ['eth', 'ethchain'],
+  'stellar': ['xlm', 'lumens'],
   'payment': ['transaction', 'transfer', 'pay', 'send money'],
   'overview': ['summary', 'report', 'analysis', 'breakdown'],
   'department': ['team', 'division', 'group', 'section', 'unit']
 };
 
 const commonTypos: { [key: string]: string } = {
-  // Ethereum variations
-  'etherem': 'ethereum',
-  'ethereium': 'ethereum',
-  'etherium': 'ethereum',
-  'eth': 'ethereum',
+  // Stellar variations
+  'steller': 'stellar',
+  'stellr': 'stellar',
+  'xlm': 'stellar',
   
   // Market variations
   'makret': 'market',

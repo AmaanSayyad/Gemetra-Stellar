@@ -3,8 +3,9 @@ import { RefreshCw, Check, X, Users, DollarSign, AlertCircle, CheckCircle } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { PaymentPreviewModal } from './PaymentPreviewModal';
 import { PaymentSuccessModal } from './PaymentSuccessModal';
-import { MNEE_CONTRACT_ADDRESS_MAINNET } from '../utils/ethereum';
-import { useChainId } from 'wagmi';
+import { sendBulkXlmPayments } from '../utils/stellar';
+import { useStellarWallet } from '../utils/stellar-wallet';
+import { getCurrentNetwork } from '../config/stellar';
 import type { Employee } from '../lib/supabase';
 
 interface BulkTransferEmployee {
@@ -28,30 +29,30 @@ interface BulkTransferProps {
 
 // Network Warning Component
 const NetworkWarning: React.FC = () => {
-  const chainId = useChainId();
+  const network = getCurrentNetwork();
   
-  if (chainId === 1) {
+  if (network === 'mainnet') {
     return (
       <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-center space-x-2">
           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-          <span className="text-green-800 font-medium text-sm sm:text-base">Connected to Ethereum Mainnet</span>
+          <span className="text-green-800 font-medium text-sm sm:text-base">Connected to Stellar Mainnet</span>
         </div>
         <p className="text-green-700 text-xs sm:text-sm mt-1">
-          Using real MNEE tokens. Contract: <code className="text-xs bg-green-100 px-1 rounded">{MNEE_CONTRACT_ADDRESS_MAINNET.slice(0, 10)}...</code>
+          Using real XLM tokens on the Stellar network.
         </p>
       </div>
     );
   }
   
   return (
-    <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
       <div className="flex items-center space-x-2">
-        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-        <span className="text-red-800 font-medium text-sm sm:text-base">Wrong Network</span>
+        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+        <span className="text-yellow-800 font-medium text-sm sm:text-base">Stellar Testnet</span>
       </div>
-      <p className="text-red-700 text-xs sm:text-sm mt-1">
-        Please switch to <strong>Ethereum Mainnet</strong> to use real MNEE tokens. MNEE only exists on Mainnet.
+      <p className="text-yellow-700 text-xs sm:text-sm mt-1">
+        You are connected to <strong>Stellar Testnet</strong>. Switch to Mainnet for real transactions.
       </p>
     </div>
   );
@@ -66,7 +67,6 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
   onPaymentSuccess
 }) => {
   const [bulkEmployees, setBulkEmployees] = useState<BulkTransferEmployee[]>([]);
-  const [selectedToken, setSelectedToken] = useState('MNEE');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -77,6 +77,19 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
     amount: number;
   }>>([]);
   const [paidTotal, setPaidTotal] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState<Array<{
+    id: string;
+    name: string;
+    status: 'pending' | 'processing' | 'success' | 'failed';
+    txHash?: string;
+    error?: string;
+  }>>([]);
+
+  // Use Stellar wallet hook
+  const { walletState, signTransaction } = useStellarWallet();
+  
+  // Token is always XLM for Stellar
+  const selectedToken = 'XLM';
 
   // Convert real employees to bulk transfer format
   useEffect(() => {
@@ -126,23 +139,87 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
     setShowPreviewModal(false);
     setIsProcessing(true);
     
-    const employeesPaid = selectedEmployees.map(emp => ({
+    // Initialize processing status for all selected employees
+    const initialStatus = selectedEmployees.map(emp => ({
       id: emp.id,
       name: emp.name,
-      amount: emp.amount
+      status: 'pending' as const,
     }));
-    const totalPaid = selectedEmployees.reduce((sum, emp) => sum + emp.amount, 0);
-    setPaidEmployees(employeesPaid);
-    setPaidTotal(totalPaid);
+    setProcessingStatus(initialStatus);
     
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // Create wallet signer interface for sendBulkXlmPayments
+      const walletSigner = {
+        signTransaction: async (xdr: string) => {
+          return await signTransaction(xdr);
+        },
+        getPublicKey: () => walletState.publicKey,
+        isConnected: () => walletState.isConnected,
+      };
+
+      // Prepare recipients with memos
+      const recipients = selectedEmployees.map(emp => ({
+        address: emp.wallet_address,
+        amount: emp.amount,
+        memo: `Payroll for ${emp.name}`,
+      }));
+
+      // Send bulk payments
+      const result = await sendBulkXlmPayments(
+        { recipients },
+        walletSigner
+      );
+
+      // Update processing status with results
+      const updatedStatus = result.txHashes.map(txResult => {
+        const employee = selectedEmployees.find(emp => emp.wallet_address === txResult.address);
+        return {
+          id: employee?.id || '',
+          name: employee?.name || '',
+          status: txResult.success ? ('success' as const) : ('failed' as const),
+          txHash: txResult.txHash,
+          error: txResult.error,
+        };
+      });
+      setProcessingStatus(updatedStatus);
+
+      // Track successfully paid employees
+      const successfulPayments = result.txHashes.filter(tx => tx.success);
+      const employeesPaid = successfulPayments.map(tx => {
+        const employee = selectedEmployees.find(emp => emp.wallet_address === tx.address);
+        return {
+          id: employee?.id || '',
+          name: employee?.name || '',
+          amount: employee?.amount || 0,
+        };
+      });
+      const totalPaid = employeesPaid.reduce((sum, emp) => sum + emp.amount, 0);
+      
+      setPaidEmployees(employeesPaid);
+      setPaidTotal(totalPaid);
+      
+      // Clear selections
       setBulkEmployees(bulkEmployees.map(emp => ({ ...emp, selected: false })));
+      
+      // Show success modal
       setShowSuccessModal(true);
+      
       if (onPaymentSuccess) {
         onPaymentSuccess();
       }
-    }, 2000);
+    } catch (error: any) {
+      console.error('Bulk payment error:', error);
+      // Update all statuses to failed
+      const failedStatus = selectedEmployees.map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        status: 'failed' as const,
+        error: error.message || 'Payment failed',
+      }));
+      setProcessingStatus(failedStatus);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleGoToDashboard = () => {
@@ -207,6 +284,52 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
             </div>
           )}
 
+          {/* Processing Status Display */}
+          {isProcessing && processingStatus.length > 0 && (
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-blue-800 font-medium text-sm sm:text-base">Processing Payments...</span>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {processingStatus.map((status) => (
+                  <div key={status.id} className="flex items-center justify-between p-2 bg-white rounded border border-blue-100">
+                    <div className="flex items-center space-x-2">
+                      {status.status === 'success' && (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      )}
+                      {status.status === 'failed' && (
+                        <X className="w-4 h-4 text-red-600" />
+                      )}
+                      {status.status === 'processing' && (
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {status.status === 'pending' && (
+                        <div className="w-4 h-4 border-2 border-gray-300 rounded-full"></div>
+                      )}
+                      <span className="text-sm text-gray-900">{status.name}</span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {status.status === 'success' && status.txHash && (
+                        <a
+                          href={`https://stellar.expert/explorer/${getCurrentNetwork()}/tx/${status.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          View TX
+                        </a>
+                      )}
+                      {status.status === 'failed' && status.error && (
+                        <span className="text-red-600">{status.error}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
             {/* Payment Configuration */}
             <div className="lg:col-span-1 space-y-4 sm:space-y-6">
@@ -219,12 +342,10 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
                     Payment Token
                   </label>
                   <div className="bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 sm:px-4 sm:py-3 w-full text-sm sm:text-base flex items-center space-x-2 sm:space-x-3">
-                    <img 
-                      src="/mnee.png" 
-                      alt="MNEE"
-                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
-                    />
-                    <span>MNEE Stablecoin</span>
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-black rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">XLM</span>
+                    </div>
+                    <span>Stellar Lumens (XLM)</span>
                   </div>
                 </div>
 
@@ -253,11 +374,11 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
                   <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Network Fees:</span>
-                      <span className="text-gray-900">~{(selectedEmployees.length * 0.001).toFixed(3)} ETH</span>
+                      <span className="text-gray-900">{(selectedEmployees.length * 0.00001).toFixed(5)} XLM</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Processing Time:</span>
-                      <span className="text-gray-900">~{selectedEmployees.length * 2}s</span>
+                      <span className="text-gray-900">~{selectedEmployees.length * 5}s</span>
                     </div>
                   </div>
                 </div>
@@ -343,19 +464,9 @@ export const BulkTransfer: React.FC<BulkTransferProps> = ({
                             <div className="text-right">
                               <div className="font-semibold text-gray-900 text-sm sm:text-base">${employee.amount.toLocaleString()}</div>
                               <div className="flex items-center space-x-1">
-                                {selectedToken.toUpperCase() === 'MNEE' ? (
-                                  <img 
-                                    src="/mnee.png" 
-                                    alt="MNEE"
-                                    className="w-4 h-4 rounded-full object-cover"
-                                  />
-                                ) : selectedToken.toUpperCase() === 'ETH' ? (
-                                  <img 
-                                    src="/ethereum.png" 
-                                    alt="ETH"
-                                    className="w-4 h-4 rounded-full object-cover"
-                                  />
-                                ) : null}
+                                <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
+                                  <span className="text-white text-[8px] font-bold">XLM</span>
+                                </div>
                                 <span className="text-xs sm:text-sm text-gray-600">{selectedToken}</span>
                               </div>
                             </div>

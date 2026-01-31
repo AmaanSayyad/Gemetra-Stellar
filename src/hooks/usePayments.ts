@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Payment } from '../lib/supabase';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import { usePoints } from './usePoints';
+import { getCurrentNetwork } from '../config/stellar';
 
 // Helper function to generate a UUID
 function generateUUID() {
@@ -18,7 +19,9 @@ export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { address,isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   
   // Check wallet connection on hook initialization
   useEffect(() => {
@@ -30,7 +33,7 @@ export const usePayments = () => {
       }
     };
     checkWalletConnection();
-  }, []);
+  }, [isConnected, address]);
   
   // Load payments from localStorage when wallet address changes
   useEffect(() => {
@@ -55,7 +58,7 @@ export const usePayments = () => {
     }
   }, [walletAddress]);
 
-  const createPayment = useCallback(async (paymentData: Omit<Payment, 'id' | 'user_id' | 'created_at'>) => {
+  const createPayment = useCallback(async (paymentData: Omit<Payment, 'id' | 'user_id' | 'created_at' | 'blockchain_type' | 'network'>) => {
     setLoading(true);
     setError(null);
     
@@ -66,11 +69,31 @@ export const usePayments = () => {
     try {
       // Create a new payment with generated ID and timestamp
       const now = new Date().toISOString();
+      
+      // Determine blockchain type based on transaction hash format or explicit field
+      // Stellar transaction hashes are 64 hex characters
+      // Ethereum transaction hashes are 66 characters (0x + 64 hex)
+      let blockchainType: 'ethereum' | 'stellar' = 'stellar'; // Default to stellar for new payments
+      if (paymentData.transaction_hash) {
+        if (paymentData.transaction_hash.startsWith('0x')) {
+          blockchainType = 'ethereum';
+        }
+      }
+      
+      // Get current network from Stellar configuration
+      const network = getCurrentNetwork();
+      
+      // Create new payment with all Stellar-specific fields
       const newPayment: Payment = {
         id: generateUUID(),
         user_id: walletAddress, // Use wallet address as user ID
         ...paymentData,
-        created_at: now
+        blockchain_type: blockchainType,
+        network: network,
+        created_at: now,
+        // Ensure memo and ledger are included if provided in paymentData
+        memo: paymentData.memo,
+        ledger: paymentData.ledger
       };
       
       // Add to state using functional update to ensure we have the latest state
@@ -85,7 +108,11 @@ export const usePayments = () => {
           id: newPayment.id,
           employee_id: paymentData.employee_id,
           amount: paymentData.amount,
-          txHash: paymentData.transaction_hash
+          txHash: paymentData.transaction_hash,
+          blockchain_type: newPayment.blockchain_type,
+          network: newPayment.network,
+          memo: paymentData.memo,
+          ledger: paymentData.ledger
         });
         
         return updatedPayments;
@@ -100,6 +127,8 @@ export const usePayments = () => {
             ...paymentData,
             id: newPayment.id,
             user_id: walletAddress,
+            blockchain_type: blockchainType,
+            network: network,
           }], {
             onConflict: 'id', // If ID exists, update instead of insert
             ignoreDuplicates: false // Update existing records
@@ -120,6 +149,8 @@ export const usePayments = () => {
               ...paymentData,
               id: newPayment.id,
               user_id: walletAddress,
+              blockchain_type: blockchainType,
+              network: network,
             });
           }
         } else {
@@ -255,6 +286,64 @@ export const usePayments = () => {
     }
   }, [walletAddress, payments]);
 
+  // Helper function to get blockchain type display name
+  const getBlockchainTypeName = useCallback((payment: Payment): string => {
+    return payment.blockchain_type === 'ethereum' ? 'Ethereum' : 'Stellar';
+  }, []);
+
+  // Helper function to get blockchain type badge color
+  const getBlockchainTypeBadge = useCallback((payment: Payment): { label: string; color: string } => {
+    if (payment.blockchain_type === 'ethereum') {
+      return { label: 'Ethereum', color: 'blue' };
+    }
+    return { label: 'Stellar', color: 'purple' };
+  }, []);
+
+  // Helper function to generate block explorer link
+  const getExplorerLink = useCallback((payment: Payment): string | null => {
+    if (!payment.transaction_hash) {
+      return null;
+    }
+
+    if (payment.blockchain_type === 'ethereum') {
+      // Ethereum - use Etherscan
+      const network = payment.network === 'testnet' ? 'sepolia.' : '';
+      return `https://${network}etherscan.io/tx/${payment.transaction_hash}`;
+    } else {
+      // Stellar - use Stellar Expert
+      const network = payment.network === 'testnet' ? 'testnet' : 'public';
+      return `https://stellar.expert/explorer/${network}/tx/${payment.transaction_hash}`;
+    }
+  }, []);
+
+  // Helper function to format transaction hash for display
+  const formatTransactionHash = useCallback((payment: Payment): string => {
+    if (!payment.transaction_hash) {
+      return 'N/A';
+    }
+
+    const hash = payment.transaction_hash;
+    
+    // For Ethereum (0x + 64 chars), show first 10 and last 8 chars
+    if (payment.blockchain_type === 'ethereum') {
+      if (hash.length >= 18) {
+        return `${hash.substring(0, 10)}...${hash.substring(hash.length - 8)}`;
+      }
+      return hash;
+    }
+    
+    // For Stellar (64 chars), show first 8 and last 8 chars
+    if (hash.length >= 16) {
+      return `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}`;
+    }
+    return hash;
+  }, []);
+
+  // Helper function to get network display name
+  const getNetworkName = useCallback((payment: Payment): string => {
+    return payment.network === 'mainnet' ? 'Mainnet' : 'Testnet';
+  }, []);
+
   return {
     loading,
     error,
@@ -262,5 +351,10 @@ export const usePayments = () => {
     updatePaymentStatus,
     getPaymentsByEmployee,
     getAllPayments,
+    getBlockchainTypeName,
+    getBlockchainTypeBadge,
+    getExplorerLink,
+    formatTransactionHash,
+    getNetworkName,
   };
 };

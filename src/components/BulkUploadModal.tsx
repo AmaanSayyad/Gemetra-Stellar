@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, Download, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { isValidEthereumAddress } from '../utils/ethereum';
+import { isValidStellarAddress } from '../utils/stellar';
 import type { Employee } from '../lib/supabase';
 
 interface BulkUploadModalProps {
@@ -181,8 +181,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           rowErrors.push(`Row ${i + 1}: Valid email is required (got: "${employee.email}")`);
         }
         
-        if (!employee.wallet_address || !isValidEthereumAddress(employee.wallet_address)) {
-          rowErrors.push(`Row ${i + 1}: Valid Ethereum address is required (got: "${employee.wallet_address}")`);
+        if (!employee.wallet_address || !isValidStellarAddress(employee.wallet_address)) {
+          rowErrors.push(`Row ${i + 1}: Valid Stellar address is required (got: "${employee.wallet_address}")`);
         }
         
         if (employee.salary <= 0 || isNaN(employee.salary)) {

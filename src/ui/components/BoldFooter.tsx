@@ -80,7 +80,7 @@ const BoldFooterRoot = React.forwardRef<HTMLElement, BoldFooterRootProps>(
               © Gemetra 2025
             </span>
             <span className="font-['Montserrat'] text-[14px] font-[500] leading-[20px] text-subtext-color text-center">
-             Revolutionary AI-powered payroll solution built on Ethereum with MNEE stablecoin.
+             Revolutionary AI-powered payroll solution built on Stellar with XLM for instant global payments.
             </span>
           </div>
         </div>

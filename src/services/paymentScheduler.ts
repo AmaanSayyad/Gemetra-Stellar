@@ -1,7 +1,6 @@
-import { sendBulkMneePayments } from '../utils/ethereum';
+import { sendBulkXlmPayments } from '../utils/stellar';
 import { sendPaymentEmail } from '../utils/emailService';
 import type { ScheduledPayment } from '../lib/supabase';
-import type { Address } from 'viem';
 
 interface ProcessPaymentResult {
   success: boolean;
@@ -21,18 +20,19 @@ export const processScheduledPayment = async (
     
     // Prepare payment data
     const recipients = [{
-      address: scheduledPayment.employee_wallet_address as Address,
-      amount: scheduledPayment.amount
+      address: scheduledPayment.employee_wallet_address,
+      amount: scheduledPayment.amount,
+      memo: `Scheduled payment for ${scheduledPayment.employee_name}`
     }];
     
     // Send payment
-    const result = await sendBulkMneePayments(recipients);
+    const result = await sendBulkXlmPayments({ recipients });
     
-    if (result.success && result.txHash) {
+    if (result.success && result.txHashes && result.txHashes.length > 0) {
       // Find the transaction hash for this employee
-      const employeeTxHash = result.txHashes?.find(
+      const employeeTxHash = result.txHashes.find(
         tx => tx.address.toLowerCase() === scheduledPayment.employee_wallet_address.toLowerCase()
-      )?.txHash || result.txHash;
+      )?.txHash || result.txHashes[0].txHash;
       
       // Record payment
       await createPayment({

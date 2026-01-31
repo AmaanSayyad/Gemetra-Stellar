@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Building, Save, Edit3, Check, X, Download, Wallet, Copy, Bell, Globe, Shield, Play, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAccount, useChainId } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import { supabase } from '../lib/supabase';
-import { formatAddress } from '../utils/ethereum';
+import { formatStellarAddress } from '../utils/stellar';
 import { useEmployees } from '../hooks/useEmployees';
 import { usePayments } from '../hooks/usePayments';
+import { getCurrentNetwork } from '../config/stellar';
 
 interface SettingsPageProps {
   onBack: () => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
+  const network = getCurrentNetwork();
   const { employees } = useEmployees();
   const { getAllPayments } = usePayments();
   const [loading, setLoading] = useState(false);
@@ -147,7 +150,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
           exportedBy: address,
           walletAddress: address,
           dataVersion: '1.0',
-          network: chainId === 1 ? 'Ethereum Mainnet' : chainId === 11155111 ? 'Sepolia Testnet' : `Chain ${chainId}`
+          network: network === 'mainnet' ? 'Stellar Mainnet' : 'Stellar Testnet'
         },
         companyInfo: {
           companyName: companyName,
@@ -401,9 +404,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   <div className="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-900 text-sm sm:text-base">
-                      {chainId === 1 ? 'Ethereum Mainnet' : chainId === 11155111 ? 'Sepolia Testnet' : `Chain ${chainId}`}
+                      {network === 'mainnet' ? 'Stellar Mainnet' : 'Stellar Testnet'}
                     </span>
-                    {chainId === 1 && (
+                    {network === 'mainnet' && (
                       <span className="ml-auto px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
                         Production
                       </span>
@@ -443,7 +446,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     {companyName || 'My Company'}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600 font-mono">{formatAddress(address || '')}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 font-mono">{formatStellarAddress(address || '')}</p>
                 </div>
 
                 {/* Quick Stats */}
@@ -452,7 +455,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 text-xs sm:text-sm">Network</span>
                       <span className="text-gray-900 text-xs sm:text-sm font-medium">
-                        {chainId === 1 ? 'Mainnet' : chainId === 11155111 ? 'Sepolia' : `Chain ${chainId}`}
+                        {network === 'mainnet' ? 'Mainnet' : 'Testnet'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

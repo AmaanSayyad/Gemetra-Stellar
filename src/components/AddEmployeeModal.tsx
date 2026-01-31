@@ -207,7 +207,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                Wallet Address
+                Wallet Address (Stellar)
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
@@ -216,11 +216,12 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   name="wallet_address"
                   value={formData.wallet_address}
                   onChange={handleInputChange}
-                  placeholder="Ethereum wallet address (0x...)"
+                  placeholder="Stellar address (G...)"
                   className={`bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-4 py-2 sm:py-3 pl-10 sm:pl-10 w-full focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base font-mono ${errors.wallet_address ? 'border-red-500' : ''}`}
                 />
               </div>
               {errors.wallet_address && <p className="text-red-600 text-xs sm:text-sm mt-1">{errors.wallet_address}</p>}
+              <p className="text-gray-500 text-xs mt-1">56 characters starting with 'G'</p>
             </div>
 
             <div>

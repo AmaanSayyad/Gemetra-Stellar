@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Employee, EmployeeWithPayments } from '../lib/supabase';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
+import { isValidStellarAddress, formatStellarAddress } from '../utils/stellar';
 // Helper function to generate a UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -16,7 +17,9 @@ export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   // Check wallet connection on hook initialization
   useEffect(() => {
     const checkWalletConnection = () => {
@@ -29,7 +32,7 @@ export const useEmployees = () => {
     };
 
     checkWalletConnection();
-  }, []);
+  }, [isConnected, address]);
 
   const fetchEmployees = async () => {
     if (!walletAddress) {
@@ -99,6 +102,15 @@ export const useEmployees = () => {
     if (!walletAddress) throw new Error('Wallet not connected');
 
     try {
+      // Validate Stellar wallet address if provided
+      if (employeeData.wallet_address && employeeData.wallet_address.trim() !== '') {
+        if (!isValidStellarAddress(employeeData.wallet_address)) {
+          const errorMsg = 'Invalid Stellar address format. Stellar addresses must be 56 characters starting with "G"';
+          console.warn(`⚠️ ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+      }
+
       // Check for duplicate email in existing employees
       const existingEmployee = employees.find(
         emp => emp.email.toLowerCase() === employeeData.email.toLowerCase()
@@ -181,6 +193,15 @@ export const useEmployees = () => {
     if (!walletAddress) throw new Error('Wallet not connected');
 
     try {
+      // Validate Stellar wallet address if being updated
+      if (updates.wallet_address !== undefined && updates.wallet_address && updates.wallet_address.trim() !== '') {
+        if (!isValidStellarAddress(updates.wallet_address)) {
+          const errorMsg = 'Invalid Stellar address format. Stellar addresses must be 56 characters starting with "G"';
+          console.warn(`⚠️ ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+      }
+
       // Find the employee to update
       const employeeToUpdate = employees.find(emp => emp.id === id);
       if (!employeeToUpdate) {

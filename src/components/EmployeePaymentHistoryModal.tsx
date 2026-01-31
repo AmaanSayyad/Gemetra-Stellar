@@ -17,7 +17,7 @@ export const EmployeePaymentHistoryModal: React.FC<EmployeePaymentHistoryModalPr
   employee,
   onMakePayment
 }) => {
-  const { loading, getPaymentsByEmployee } = usePayments();
+  const { loading, getPaymentsByEmployee, getExplorerLink, getBlockchainTypeBadge } = usePayments();
   const [employeePayments, setEmployeePayments] = useState<Payment[]>([]);
 
   useEffect(() => {
@@ -196,15 +196,28 @@ export const EmployeePaymentHistoryModal: React.FC<EmployeePaymentHistoryModalPr
                         {payment.transaction_hash && (
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500">Tx:</span>
-                            <a
-                              href={`https://etherscan.io/tx/${payment.transaction_hash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 font-mono flex items-center space-x-1 hover:underline"
-                            >
-                              <span className="truncate max-w-28">{payment.transaction_hash.slice(0, 10)}...</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                            <div className="flex items-center space-x-1">
+                              {(() => {
+                                const badge = getBlockchainTypeBadge(payment);
+                                const badgeColor = badge.color === 'blue' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-purple-100 text-purple-700';
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badgeColor}`}>
+                                    {badge.label}
+                                  </span>
+                                );
+                              })()}
+                              <a
+                                href={getExplorerLink(payment) || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 font-mono flex items-center space-x-1 hover:underline"
+                              >
+                                <span className="truncate max-w-28">{payment.transaction_hash.slice(0, 10)}...</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
                           </div>
                         )}
                         
@@ -243,8 +256,19 @@ export const EmployeePaymentHistoryModal: React.FC<EmployeePaymentHistoryModalPr
                             <div className="text-right">
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-xs text-gray-500">Tx:</span>
+                                {(() => {
+                                  const badge = getBlockchainTypeBadge(payment);
+                                  const badgeColor = badge.color === 'blue' 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-purple-100 text-purple-700';
+                                  return (
+                                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badgeColor}`}>
+                                      {badge.label}
+                                    </span>
+                                  );
+                                })()}
                                 <a
-                                  href={`https://etherscan.io/tx/${payment.transaction_hash}`}
+                                  href={getExplorerLink(payment) || '#'}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-blue-600 hover:text-blue-800 font-mono flex items-center space-x-1 hover:underline"

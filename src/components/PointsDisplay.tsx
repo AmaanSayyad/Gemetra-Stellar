@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Coins, Gift, History, ArrowRight, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePoints } from '../hooks/usePoints';
-import { formatAddress, isValidEthereumAddress } from '../utils/ethereum';
+import { formatStellarAddress, isValidStellarAddress } from '../utils/stellar';
 
 interface PointsDisplayProps {
   walletAddress: string;
@@ -13,7 +13,7 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
   walletAddress,
   isWalletConnected
 }) => {
-  const { userPoints, transactions, convertPointsToMnee, conversionRate, loading } = usePoints();
+  const { userPoints, transactions, convertPointsToXlm, conversionRate, loading } = usePoints();
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [pointsToConvert, setPointsToConvert] = useState('');
@@ -23,7 +23,7 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
   const totalPoints = userPoints?.total_points || 0;
   const lifetimePoints = userPoints?.lifetime_points || 0;
-  const mneeEquivalent = totalPoints / conversionRate;
+  const xlmEquivalent = totalPoints / conversionRate;
 
   const handleConvert = async () => {
     if (!pointsToConvert || parseFloat(pointsToConvert) <= 0) {
@@ -44,8 +44,8 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
     // Validate recipient address if provided
     const finalRecipientAddress = recipientAddress.trim() || walletAddress;
-    if (recipientAddress.trim() && !isValidEthereumAddress(recipientAddress.trim())) {
-      setConversionError('Invalid recipient address. Please enter a valid Ethereum address.');
+    if (recipientAddress.trim() && !isValidStellarAddress(recipientAddress.trim())) {
+      setConversionError('Invalid recipient address. Please enter a valid Stellar address.');
       return;
     }
 
@@ -53,30 +53,30 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
     setConversionError(null);
 
     try {
-      const result = await convertPointsToMnee(points, finalRecipientAddress);
+      const result = await convertPointsToXlm(points, finalRecipientAddress);
       
       // Show success message with details
-      let successMessage = `✅ Successfully converted ${points} points to ${result.mneeAmount.toFixed(6)} MNEE!\n\n` +
+      let successMessage = `✅ Successfully converted ${points} points to ${result.xlmAmount.toFixed(7)} XLM!\n\n` +
         `📊 Conversion Details:\n` +
         `• Points Converted: ${points}\n` +
-        `• MNEE Amount: ${result.mneeAmount.toFixed(6)} MNEE\n` +
+        `• XLM Amount: ${result.xlmAmount.toFixed(7)} XLM\n` +
         `• Remaining Points: ${result.remainingPoints}\n`;
       
       const recipient = recipientAddress.trim() || walletAddress;
-      if (result.transactionHash && result.transactionHash.startsWith('0x')) {
-        // Real blockchain transaction
+      if (result.transactionHash && result.transactionHash.length === 64) {
+        // Real blockchain transaction (Stellar tx hash is 64 chars)
         successMessage += `\n🔗 Transaction Hash: ${result.transactionHash}\n` +
-          `✅ MNEE tokens have been sent to: ${formatAddress(recipient)}\n` +
+          `✅ XLM tokens have been sent to: ${formatStellarAddress(recipient)}\n` +
           `Check the wallet balance to see the tokens.`;
       } else if (result.transactionHash?.includes('pending')) {
         // Pending conversion (requires treasury wallet)
         successMessage += `\n⏳ Status: Pending\n` +
-          `💡 Note: In production, a treasury wallet would send ${result.mneeAmount.toFixed(6)} MNEE to ${formatAddress(recipient)}.\n` +
+          `💡 Note: In production, a treasury wallet would send ${result.xlmAmount.toFixed(7)} XLM to ${formatStellarAddress(recipient)}.\n` +
           `For this demo, the conversion has been recorded and will be processed.`;
       } else {
         // Conversion recorded but no transfer
         successMessage += `\n📝 Conversion recorded in system.\n` +
-          `💡 In production, MNEE tokens would be automatically sent to your wallet.`;
+          `💡 In production, XLM tokens would be automatically sent to your wallet.`;
       }
       
       alert(successMessage);
@@ -156,8 +156,8 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
                       <p className="text-3xl font-bold text-purple-900">{totalPoints.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-purple-700 font-medium">MNEE Equivalent</p>
-                      <p className="text-2xl font-bold text-purple-900">{mneeEquivalent.toFixed(4)} MNEE</p>
+                      <p className="text-sm text-purple-700 font-medium">XLM Equivalent</p>
+                      <p className="text-2xl font-bold text-purple-900">{xlmEquivalent.toFixed(7)} XLM</p>
                     </div>
                   </div>
                 </div>
@@ -180,7 +180,7 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
                   />
                   {pointsToConvert && parseFloat(pointsToConvert) > 0 && (
                     <p className="mt-2 text-sm text-gray-600">
-                      = {(parseFloat(pointsToConvert) / conversionRate).toFixed(6)} MNEE
+                      = {(parseFloat(pointsToConvert) / conversionRate).toFixed(7)} XLM
                     </p>
                   )}
                 </div>
@@ -196,13 +196,13 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
                       setRecipientAddress(e.target.value);
                       setConversionError(null);
                     }}
-                    placeholder={walletAddress || "Enter Ethereum address (defaults to your wallet)"}
+                    placeholder={walletAddress || "Enter Stellar address (defaults to your wallet)"}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-mono"
                   />
                   <p className="mt-2 text-xs text-gray-500">
                     {recipientAddress.trim() 
-                      ? `Tokens will be sent to: ${formatAddress(recipientAddress.trim())}`
-                      : `Tokens will be sent to your connected wallet: ${formatAddress(walletAddress)}`
+                      ? `Tokens will be sent to: ${formatStellarAddress(recipientAddress.trim())}`
+                      : `Tokens will be sent to your connected wallet: ${formatStellarAddress(walletAddress)}`
                     }
                   </p>
                 </div>
@@ -215,10 +215,10 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                   <p className="text-xs text-blue-800">
-                    💡 <strong>Conversion Rate:</strong> {conversionRate} points = 1 MNEE
+                    💡 <strong>Conversion Rate:</strong> {conversionRate} points = 1 XLM
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
-                    Note: In production, MNEE tokens will be sent directly to your wallet address.
+                    Note: In production, XLM tokens will be sent directly to your wallet address.
                   </p>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
                   disabled={isConverting || !pointsToConvert || parseFloat(pointsToConvert) < conversionRate}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                 >
-                  {isConverting ? 'Converting...' : 'Convert to MNEE'}
+                  {isConverting ? 'Converting...' : 'Convert to XLM'}
                 </button>
               </div>
             </motion.div>

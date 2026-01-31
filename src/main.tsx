@@ -1,9 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "./config/wagmi";
-import { setWagmiConfig } from "./utils/ethereum";
+import { StellarWalletProvider } from "./utils/stellar-wallet";
 import App from "./App";
 import "./index.css";
 
@@ -16,16 +14,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// Set the config in ethereum utils
-setWagmiConfig(wagmiConfig);
-
-// Render app with Wagmi and TanStack Query providers
+// Render app with TanStack Query and Stellar Wallet providers
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <StellarWalletProvider>
         <App />
-      </QueryClientProvider>
-    </WagmiProvider>
+      </StellarWalletProvider>
+    </QueryClientProvider>
   </React.StrictMode>
 );

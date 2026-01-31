@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { X, Send, Users, DollarSign, Clock, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { sendBulkMneePayments, isWalletConnected, getConnectedAccount, formatAddress, MNEE_CONTRACT_ADDRESS_MAINNET } from '../utils/ethereum';
+import { sendBulkXlmPayments, formatStellarAddress } from '../utils/stellar';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import { usePayments } from '../hooks/usePayments';
 import { usePoints } from '../hooks/usePoints';
 import { sendBulkPaymentEmails, PaymentEmailData } from '../utils/emailService';
-import { useChainId } from 'wagmi';
+import { getCurrentNetwork } from '../config/stellar';
 
 interface PaymentPreviewModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
 }) => {
   const { createPayment } = usePayments();
   const { earnPoints } = usePoints();
+  const { walletState } = useStellarWallet();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<{
     success: boolean;
@@ -51,12 +53,12 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
   if (!isOpen) return null;
 
   const totalAmount = employeesToPay.reduce((sum, emp) => sum + (emp.amount || 0), 0);
-  const networkFees = employeesToPay.length * 0.001; // ~0.001 ETH per transaction
-  const estimatedTime = employeesToPay.length * 15; // ~15 seconds per transaction (Ethereum)
+  const networkFees = employeesToPay.length * 0.00001; // 0.00001 XLM per transaction (Stellar base fee)
+  const estimatedTime = employeesToPay.length * 5; // ~5 seconds per transaction (Stellar)
 
-  const walletConnected = isWalletConnected();
-  const connectedAccount = getConnectedAccount();
-  const chainId = useChainId();
+  const walletConnected = walletState.isConnected;
+  const connectedAccount = walletState.publicKey;
+  const network = getCurrentNetwork();
 
   const handleConfirmPayment = async () => {
     if (!walletConnected || !connectedAccount) {
@@ -91,8 +93,14 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
 
       console.log(`📤 Preparing batch payment for ${recipientsData.length} recipients...`);
 
-      // Send batch payment (will use Multicall3 for single transaction if available)
-      const result = await sendBulkMneePayments(recipientsData);
+      // Send batch payment using Stellar
+      const result = await sendBulkXlmPayments({
+        recipients: recipientsData.map(r => ({
+          address: r.address,
+          amount: r.amount,
+          memo: `Payroll for employee`
+        }))
+      });
 
       if (result.success) {
         // Record payments in Supabase with correct transaction hash for each employee
@@ -139,7 +147,9 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                   token: selectedToken,
                   transaction_hash: employeeTxHash,
                   status: 'completed',
-                  payment_date: new Date().toISOString()
+                  payment_date: new Date().toISOString(),
+                  memo: `Payroll for ${employee.name}`,
+                  ledger: matchingTx?.ledger
                 });
                 console.log(`✅ Successfully recorded payment ${i + 1}/${employeesToPay.length} for ${employee.name} with txHash: ${employeeTxHash}`);
               } catch (paymentError) {
@@ -299,8 +309,8 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
               <img
-                src="/mnee.png"
-                alt="MNEE logo"
+                src="/xlm.png"
+                alt="XLM logo"
                 className="w-8 h-8 object-contain"
               />
             </div>
@@ -462,8 +472,8 @@ export const PaymentPreviewModal: React.FC<PaymentPreviewModalProps> = ({
                   <div className="flex items-center space-x-2">
                     {selectedToken.toUpperCase() === 'MNEE' ? (
                       <img 
-                        src="/mnee.png" 
-                        alt="MNEE"
+                        src="/xlm.png" 
+                        alt="XLM"
                         className="w-6 h-6 rounded-full object-cover"
                       />
                     ) : selectedToken.toUpperCase() === 'ETH' ? (

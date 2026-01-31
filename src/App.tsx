@@ -1,14 +1,16 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
+import { useStellarWallet } from "./utils/stellar-wallet";
 import DashboardLayout from "./components/DashboardLayout";
 import { LandingPage } from "./components/LandingPage";
 import { Header } from "./components/Header";
 
 
 function App() {
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("gemetra_active_tab") || "landing";
   });

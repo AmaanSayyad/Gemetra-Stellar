@@ -21,4 +21,9 @@ export default defineConfig({
   define: {
     global: 'window',
   },
+  test: {
+    globals: true,
+    environment: 'node',
+    setupFiles: [],
+  },
 })

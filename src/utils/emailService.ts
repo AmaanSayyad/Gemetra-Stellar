@@ -43,7 +43,7 @@ Payment Details:
 - Date: ${emailData.paymentDate}
 - Company: ${emailData.companyName}
 ${emailData.transactionHash ? `- Transaction Hash: ${emailData.transactionHash}` : ''}
-${emailData.transactionHash ? `- View on Etherscan: https://etherscan.io/tx/${emailData.transactionHash}` : ''}
+${emailData.transactionHash ? `- View on Stellar Expert: https://stellar.expert/explorer/public/tx/${emailData.transactionHash}` : ''}
 
 Thank you for your service.
 
@@ -55,7 +55,7 @@ ${emailData.companyName} Team`,
       payment_date: emailData.paymentDate,
       company_name: emailData.companyName,
       explorer_link: emailData.transactionHash 
-        ? `https://etherscan.io/tx/${emailData.transactionHash}` // Updated to Etherscan for Ethereum
+        ? `https://stellar.expert/explorer/public/tx/${emailData.transactionHash}` // Stellar Expert for mainnet
         : 'N/A'
     };
 

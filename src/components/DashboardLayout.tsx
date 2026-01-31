@@ -11,13 +11,13 @@ import { EmployeePaymentHistoryModal } from './EmployeePaymentHistoryModal';
 import { VATRefundPage } from './VATRefundPage';
 import { VATAdminPage } from './VATAdminPage';
 import { ScheduledPayments } from './ScheduledPayments';
-// Wallet connection is handled by wagmi - no need for separate functions
+// Wallet connection is handled by Stellar wallet - no need for separate functions
 import { motion, AnimatePresence } from 'framer-motion';
 // Removed useAuth import in favor of direct wallet connection
 import { useEmployees } from '../hooks/useEmployees';
 import { useNotifications } from '../hooks/useNotifications';
 import type { Employee } from '../lib/supabase';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 
 interface DashboardLayoutProps {
   companyName: string;
@@ -26,7 +26,9 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ companyName: initialCompanyName }) => {
   const { employees, refetch: refreshEmployees } = useEmployees();
   const { addNotification } = useNotifications();
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   
   const [companyName, setCompanyName] = useState(() => {
     // Try to load from localStorage first

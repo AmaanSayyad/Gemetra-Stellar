@@ -3,7 +3,7 @@ import { Bell, Search } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { PointsDisplay } from './PointsDisplay';
 import { useNotifications } from '../hooks/useNotifications';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 
 interface TopBarProps {
   activeTab: string;
@@ -11,7 +11,9 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ activeTab }) => {
   const { notifications} = useNotifications();
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
+  const isConnected = walletState.isConnected;
   const [showNotifications, setShowNotifications] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;

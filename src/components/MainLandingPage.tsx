@@ -42,10 +42,10 @@ function GemetraLandingPage() {
               alt="Ethereum logo"
               className="h-5 w-5 object-contain"
             />
-            <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Built on ETHEREUM</span>
+            <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Built on STELLAR</span>
             <img
-              src="/mnee.png"
-              alt="MNEE logo"
+              src="/xlm.png"
+              alt="XLM logo"
               className="h-5 w-5 object-contain"
             />
             <span className="font-['Montserrat'] text-[14px] font-[700] text-brand-800">Powered by MNEE</span>
@@ -56,7 +56,7 @@ function GemetraLandingPage() {
 
           <span className="w-full max-w-[768px] whitespace-pre-wrap font-['Montserrat'] text-[22px] font-[600] leading-[32px] text-brand-800 text-center -tracking-[0.015em]">
             {
-              "Borderless payments infrastructure built on Ethereum with MNEE stablecoin unifying VAT refunds and global payroll automation. Trustless, transparent, and programmable money with AI-driven financial intelligence."
+              "Borderless payments infrastructure built on Stellar with XLM unifying VAT refunds and global payroll automation. Trustless, transparent, and programmable money with AI-driven financial intelligence."
             }
           </span>
         </div>
@@ -143,12 +143,12 @@ function GemetraLandingPage() {
               <h3 className="font-['Montserrat'] text-[24px] font-[700]">Blockchain Layer</h3>
             </div>
             <p className="text-subtext-color font-['Montserrat'] text-[16px] leading-[24px]">
-              Built on Ethereum blockchain with MNEE stablecoin for programmable money, secure transactions, and transparent payroll automation.
+              Built on Stellar blockchain with XLM for programmable money, secure transactions, and transparent payroll automation.
             </p>
             <div className="flex flex-wrap gap-2 mt-auto">
-              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">Ethereum Network</span>
-              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">MNEE Stablecoin</span>
-              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">ERC-20 Standard</span>
+              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">Stellar Network</span>
+              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">XLM Native Token</span>
+              <span className="px-3 py-1 bg-brand-50 rounded-full text-sm font-medium text-brand-800">Fast Settlement</span>
             </div>
             <div className="flex items-center gap-4 mt-4">
               <img
@@ -302,7 +302,7 @@ function GemetraLandingPage() {
                 </span>
                 <span className="whitespace-pre-wrap font-['Montserrat'] text-[18px] font-[400] leading-[26px] text-subtext-color -tracking-[0.01em]">
                   {
-                    "Gemetra unifies VAT refunds for tourists and global payroll automation on a single trustless platform. Powered by Ethereum and MNEE stablecoin for programmable money and AI-driven compliance."
+                    "Gemetra unifies VAT refunds for tourists and global payroll automation on a single trustless platform. Powered by Stellar and XLM for programmable money and AI-driven compliance."
                   }
                 </span>
 
@@ -403,7 +403,7 @@ function GemetraLandingPage() {
                   Instant Settlement
                 </h3>
                 <p className="text-subtext-color font-['Montserrat'] text-[16px] leading-[24px] mb-6">
-                  Experience secure and transparent VAT refunds and payroll transactions with Ethereum blockchain and MNEE stablecoin. Settlement time &lt;1 second with instant confirmations globally.
+                  Experience secure and transparent VAT refunds and payroll transactions with Stellar blockchain and XLM. Settlement time &lt;5 seconds with instant confirmations globally.
                 </p>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2">
@@ -811,7 +811,7 @@ function GemetraLandingPage() {
             Dual Workflows with Gemetra
           </span>
           <p className="max-w-[768px] text-center text-subtext-color font-['Montserrat'] text-[18px] leading-[28px]">
-            Our platform handles both VAT refunds and global payroll with streamlined, automated processes built on Ethereum blockchain with MNEE stablecoin
+            Our platform handles both VAT refunds and global payroll with streamlined, automated processes built on Stellar blockchain with XLM
           </p>
         </div>
 

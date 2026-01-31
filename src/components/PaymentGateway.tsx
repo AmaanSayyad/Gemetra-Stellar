@@ -1,57 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Wallet, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { sendMneePayment, getMneeBalance, isValidEthereumAddress, MNEE_CONTRACT_ADDRESS_MAINNET, getMneeContractAddress } from '../utils/ethereum';
-import { useAccount, useChainId } from 'wagmi';
-import { useBalance } from 'wagmi'
+import { sendXlmPayment, getAccountBalances, isValidStellarAddress, formatStellarAddress, formatXlm } from '../utils/stellar';
+import { useStellarWallet } from '../utils/stellar-wallet';
+import { getCurrentNetwork } from '../config/stellar';
 export const PaymentGateway: React.FC = () => {
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
-  const [selectedToken, setSelectedToken] = useState('MNEE');
+  const [memo, setMemo] = useState('');
+  const [selectedToken, setSelectedToken] = useState('XLM');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<{
     success: boolean;
     txHash?: string;
     error?: string;
   } | null>(null);
-  const {address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const [mneeContractAddress, setMneeContractAddress] = useState<`0x${string}`>(MNEE_CONTRACT_ADDRESS_MAINNET);
   
-  // Get the correct MNEE contract address based on network
-  useEffect(() => {
-    getMneeContractAddress().then(addr => {
-      setMneeContractAddress(addr);
-    });
-  }, [chainId]);
+  // Use Stellar wallet hook instead of wagmi
+  const { walletState, signTransaction } = useStellarWallet();
+  const network = getCurrentNetwork();
   
-  const result = useBalance({
-    address: address,
-    token: mneeContractAddress, 
-  });
-  console.log({result})
   const [addressError, setAddressError] = useState('');
   const [amountError, setAmountError] = useState('');
-  const [mneeBalance, setMneeBalance] = useState<number>(0);
+  const [xlmBalance, setXlmBalance] = useState<number>(0);
+  const [availableXlmBalance, setAvailableXlmBalance] = useState<number>(0);
 
   // Check wallet connection
-  const walletConnected = isConnected;
+  const walletConnected = walletState.isConnected;
+  
+  // Create wallet signer object for sendXlmPayment
+  const walletSigner = {
+    signTransaction: async (xdr: string) => {
+      return await signTransaction(xdr);
+    },
+    getPublicKey: () => walletState.publicKey,
+    isConnected: () => walletState.isConnected,
+  };
 
-  // Check MNEE balance
+  // Check XLM balance
   useEffect(() => {
-    const checkMneeBalance = async () => {
-      if (walletConnected && address) {
+    const checkXlmBalance = async () => {
+      if (walletConnected && walletState.publicKey) {
         try {
-          const balance = await getMneeBalance(address as `0x${string}`);
-          setMneeBalance(balance);
+          const balances = await getAccountBalances(walletState.publicKey);
+          setXlmBalance(balances.xlm);
+          setAvailableXlmBalance(balances.availableXlm);
         } catch (error) {
-          console.error('Failed to check MNEE balance:', error);
+          console.error('Failed to check XLM balance:', error);
         }
       }
     };
 
-    checkMneeBalance();
-  }, [walletConnected, address]);
+    checkXlmBalance();
+  }, [walletConnected, walletState.publicKey]);
 
   const validateAddress = (address: string) => {
     if (!address) {
@@ -59,8 +60,8 @@ export const PaymentGateway: React.FC = () => {
       return false;
     }
     
-    if (!isValidEthereumAddress(address)) {
-      setAddressError('Invalid Ethereum address format');
+    if (!isValidStellarAddress(address)) {
+      setAddressError('Invalid Stellar address format (must be 56 characters starting with G)');
       return false;
     }
     
@@ -81,8 +82,8 @@ export const PaymentGateway: React.FC = () => {
       return false;
     }
     
-    if (selectedToken === 'MNEE' && numAmount < 0.01) {
-      setAmountError('Minimum amount is 0.01 MNEE');
+    if (selectedToken === 'XLM' && numAmount < 0.0000001) {
+      setAmountError('Minimum amount is 0.0000001 XLM (1 stroop)');
       return false;
     }
     
@@ -125,16 +126,18 @@ export const PaymentGateway: React.FC = () => {
 
     try {
       console.log('Sending payment:', {
-        from: address,
+        from: walletState.publicKey,
         recipient: recipientAddress,
         amount: parseFloat(amount),
-        token: selectedToken
+        token: selectedToken,
+        memo: memo || undefined
       });
 
-      const result = await sendMneePayment(
-        recipientAddress as `0x${string}`,
-        parseFloat(amount)
-      );
+      const result = await sendXlmPayment({
+        recipientAddress,
+        amount: parseFloat(amount),
+        memo: memo || undefined
+      }, walletSigner);
 
       if (result.success) {
         setPaymentResult({
@@ -146,6 +149,7 @@ export const PaymentGateway: React.FC = () => {
         setTimeout(() => {
           setRecipientAddress('');
           setAmount('');
+          setMemo('');
           setPaymentResult(null);
         }, 5000);
       } else {
@@ -185,27 +189,27 @@ export const PaymentGateway: React.FC = () => {
 
         <div className="space-y-4 sm:space-y-6">
           {/* Network Warning */}
-          {walletConnected && chainId !== 1 && (
-            <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+          {walletConnected && network === 'testnet' && (
+            <div className="p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                <span className="text-red-800 font-medium text-sm sm:text-base">Wrong Network</span>
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+                <span className="text-yellow-800 font-medium text-sm sm:text-base">Testnet Mode</span>
               </div>
-              <p className="text-red-700 text-xs sm:text-sm mt-1">
-                Please switch to <strong>Ethereum Mainnet</strong> to use real MNEE tokens. MNEE only exists on Mainnet.
+              <p className="text-yellow-700 text-xs sm:text-sm mt-1">
+                You are connected to <strong>Stellar Testnet</strong>. Transactions use test XLM with no real value.
               </p>
             </div>
           )}
 
           {/* Mainnet Confirmation */}
-          {walletConnected && chainId === 1 && (
+          {walletConnected && network === 'mainnet' && (
             <div className="p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                <span className="text-green-800 font-medium text-sm sm:text-base">Connected to Ethereum Mainnet</span>
+                <span className="text-green-800 font-medium text-sm sm:text-base">Connected to Stellar Mainnet</span>
               </div>
               <p className="text-green-700 text-xs sm:text-sm mt-1">
-                Using real MNEE tokens. Contract: <code className="text-xs">{MNEE_CONTRACT_ADDRESS_MAINNET.slice(0, 10)}...</code>
+                Using real XLM tokens. Address: <code className="text-xs">{formatStellarAddress(walletState.publicKey || '')}</code>
               </p>
             </div>
           )}
@@ -230,26 +234,24 @@ export const PaymentGateway: React.FC = () => {
             </label>
             <div className="p-2 sm:p-3 rounded-lg border bg-gray-100 border-gray-300">
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <img 
-                  src="/mnee.png" 
-                  alt="MNEE"
-                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
-                />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-black flex items-center justify-center">
+                  <span className="text-white text-xs sm:text-sm font-bold">XLM</span>
+                </div>
                 <div>
-                  <div className="text-sm sm:text-base font-medium text-gray-900">MNEE Stablecoin</div>
+                  <div className="text-sm sm:text-base font-medium text-gray-900">Stellar Lumens (XLM)</div>
                   {walletConnected && (
                     <div className="text-xs text-gray-600 mt-1">
-                      Balance: {mneeBalance.toFixed(2)} MNEE
+                      Balance: {formatXlm(xlmBalance)} XLM (Available: {formatXlm(availableXlmBalance)} XLM)
                     </div>
                   )}
                 </div>
               </div>
             </div>
-            {walletConnected && mneeBalance === 0 && (
+            {walletConnected && xlmBalance === 0 && (
               <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
-                  <p className="text-xs sm:text-sm text-yellow-800 font-medium">No MNEE balance. You need MNEE to send payments.</p>
+                  <p className="text-xs sm:text-sm text-yellow-800 font-medium">No XLM balance. You need XLM to send payments.</p>
                 </div>
               </div>
             )}
@@ -266,7 +268,7 @@ export const PaymentGateway: React.FC = () => {
                 type="text"
                 value={recipientAddress}
                 onChange={handleAddressChange}
-                placeholder="Enter Ethereum address (0x...)"
+                placeholder="Enter Stellar address (G...)"
                 className={`bg-gray-100 border border-gray-300 text-gray-900 rounded-lg pl-8 sm:pl-10 pr-4 py-2 sm:py-3 w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base ${
                   addressError ? 'border-red-500 focus:border-red-500' : ''
                 }`}
@@ -288,7 +290,7 @@ export const PaymentGateway: React.FC = () => {
                 value={amount}
                 onChange={handleAmountChange}
                 placeholder={`Enter amount in ${selectedToken}`}
-                step="0.000001"
+                step="0.0000001"
                 min="0"
                 className={`bg-gray-100 border border-gray-300 text-gray-900 rounded-lg pl-4 pr-12 sm:pr-16 py-2 sm:py-3 w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base ${
                   amountError ? 'border-red-500 focus:border-red-500' : ''
@@ -303,6 +305,22 @@ export const PaymentGateway: React.FC = () => {
             )}
           </div>
 
+          {/* Memo Field */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Memo (Optional)
+            </label>
+            <input
+              type="text"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="Add a note for this payment"
+              maxLength={28}
+              className="bg-gray-100 border border-gray-300 text-gray-900 rounded-lg pl-4 pr-4 py-2 sm:py-3 w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+            />
+            <p className="mt-1 text-xs text-gray-500">Maximum 28 characters</p>
+          </div>
+
           {/* Transaction Summary */}
           {recipientAddress && amount && !addressError && !amountError && (
             <motion.div
@@ -315,16 +333,22 @@ export const PaymentGateway: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">To:</span>
                   <span className="text-gray-900 font-mono text-xs sm:text-sm">
-                    {recipientAddress.substring(0, 6)}...{recipientAddress.substring(recipientAddress.length - 4)}
+                    {formatStellarAddress(recipientAddress)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Amount:</span>
                   <span className="text-gray-900">{amount} {selectedToken}</span>
                 </div>
+                {memo && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Memo:</span>
+                    <span className="text-gray-900">{memo}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Network Fee:</span>
-                  <span className="text-gray-900">~0.001 ETH</span>
+                  <span className="text-gray-900">0.00001 XLM</span>
                 </div>
               </div>
             </motion.div>
@@ -364,10 +388,10 @@ export const PaymentGateway: React.FC = () => {
                         </div>
                       )}
                       <button
-                        onClick={() => window.open(`https://etherscan.io/tx/${paymentResult.txHash}`, '_blank')}
+                        onClick={() => window.open(`https://stellar.expert/explorer/${network}/tx/${paymentResult.txHash}`, '_blank')}
                         className="text-xs text-purple-600 hover:text-purple-700 inline-flex items-center space-x-1 mt-1"
                       >
-                        <span>View on Etherscan</span>
+                        <span>View on Stellar Expert</span>
                         <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>

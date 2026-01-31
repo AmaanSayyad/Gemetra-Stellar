@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { getConnectedAccount, isWalletConnected } from '../utils/ethereum';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import type { ChatSession, ChatMessage } from '../lib/supabase';
 
 // Helper function to generate a UUID
@@ -17,20 +17,20 @@ export const useChat = () => {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { walletState } = useStellarWallet();
   
   // Check wallet connection on hook initialization
   useEffect(() => {
     const checkWalletConnection = () => {
-      if (isWalletConnected()) {
-        const account = getConnectedAccount();
-        setWalletAddress(account);
+      if (walletState.isConnected && walletState.publicKey) {
+        setWalletAddress(walletState.publicKey);
       } else {
         setWalletAddress(null);
       }
     };
     
     checkWalletConnection();
-  }, []);
+  }, [walletState.isConnected, walletState.publicKey]);
 
   const fetchChatSessions = useCallback(async () => {
     if (!walletAddress) {

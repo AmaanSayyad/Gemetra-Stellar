@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Building, Edit2, Check, X } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import type { Employee } from '../lib/supabase';
 
 interface StatsOverviewProps {
@@ -10,7 +10,8 @@ interface StatsOverviewProps {
 }
 
 export const StatsOverview: React.FC<StatsOverviewProps> = ({ companyName, employees, onCompanyNameChange }) => {
-  const { address } = useAccount();
+  const { walletState } = useStellarWallet();
+  const address = walletState.publicKey;
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(companyName || 'My Company');
   // Calculate real statistics
@@ -131,8 +132,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ companyName, emplo
         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
             <img
-              src="/mnee.png"
-              alt="MNEE logo"
+              src="/xlm.png"
+              alt="XLM logo"
               className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
             />
           </div>

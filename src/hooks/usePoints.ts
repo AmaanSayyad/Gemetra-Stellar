@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { UserPoints, PointTransaction, PointConversion } from '../lib/supabase';
-import { useAccount } from 'wagmi';
-import { sendMneePayment, getMneeBalance } from '../utils/ethereum';
+import { useStellarWallet } from '../utils/stellar-wallet';
+import { sendXlmPayment, getXlmBalance } from '../utils/stellar';
 
 // Helper function to generate a UUID
 function generateUUID() {
@@ -22,7 +22,7 @@ const POINTS_RULES = {
   bonus: 0, // Manual bonus points
 };
 
-// Conversion rate: 100 points = 1 MNEE
+// Conversion rate: 100 points = 1 XLM
 const CONVERSION_RATE = 100;
 
 export const usePoints = () => {
@@ -31,18 +31,18 @@ export const usePoints = () => {
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { address, isConnected } = useAccount();
+  const { walletState } = useStellarWallet();
 
   // Check wallet connection
   useEffect(() => {
-    if (isConnected && address) {
-      setWalletAddress(address);
+    if (walletState.isConnected && walletState.publicKey) {
+      setWalletAddress(walletState.publicKey);
     } else {
       setWalletAddress(null);
       setUserPoints(null);
       setTransactions([]);
     }
-  }, [isConnected, address]);
+  }, [walletState.isConnected, walletState.publicKey]);
 
   // Load points from localStorage when wallet address changes
   useEffect(() => {
@@ -195,7 +195,7 @@ export const usePoints = () => {
     }
   }, [walletAddress, userPoints]);
 
-  const convertPointsToMnee = useCallback(async (pointsToConvert: number, recipientAddress?: string) => {
+  const convertPointsToXlm = useCallback(async (pointsToConvert: number, recipientAddress?: string) => {
     if (!walletAddress) {
       throw new Error('Wallet not connected');
     }
@@ -214,50 +214,54 @@ export const usePoints = () => {
     try {
       setLoading(true);
 
-      const mneeAmount = pointsToConvert / CONVERSION_RATE;
+      const xlmAmount = pointsToConvert / CONVERSION_RATE;
 
       // Create conversion record
       const conversion: PointConversion = {
         id: generateUUID(),
         user_id: walletAddress,
         points: pointsToConvert,
-        mnee_amount: mneeAmount,
+        mnee_amount: xlmAmount, // Field name kept for backward compatibility, but stores XLM
         conversion_rate: CONVERSION_RATE,
         status: 'pending',
         created_at: new Date().toISOString(),
       };
 
-      // Attempt to send MNEE tokens to user's wallet
-      // NOTE: This requires the user's wallet to have MNEE tokens OR a treasury wallet
-      // For demo: We'll try to send from user's wallet if they have MNEE
+      // Attempt to send XLM tokens to user's wallet
+      // NOTE: This requires the user's wallet to have XLM tokens OR a treasury wallet
+      // For demo: We'll try to send from user's wallet if they have XLM
       // In production: This would be handled by a backend treasury wallet
       let actualTxHash: string | undefined;
       let conversionStatus: 'pending' | 'completed' | 'failed' = 'pending';
       
       try {
-        // Check if user has MNEE balance (for demo/testing)
+        // Check if user has XLM balance (for demo/testing)
         // In production, this would check treasury wallet balance
-        const userBalance = await getMneeBalance(walletAddress);
+        const userBalance = await getXlmBalance(walletAddress);
         
-        if (userBalance >= mneeAmount) {
+        if (userBalance >= xlmAmount) {
           // For demo: User can send tokens if they have balance
           // In production, this would be a treasury wallet sending to recipient
-          console.log(`💰 Sending ${mneeAmount} MNEE to ${finalRecipientAddress}...`);
+          console.log(`💰 Sending ${xlmAmount} XLM to ${finalRecipientAddress}...`);
           
-          const transferResult = await sendMneePayment(finalRecipientAddress as `0x${string}`, mneeAmount);
+          const transferResult = await sendXlmPayment({
+            recipientAddress: finalRecipientAddress,
+            amount: xlmAmount,
+            memo: `Points conversion: ${pointsToConvert} points`
+          });
           
           if (transferResult.success && transferResult.txHash) {
             actualTxHash = transferResult.txHash;
             conversionStatus = 'completed';
-            console.log(`✅ MNEE tokens sent! Transaction: ${actualTxHash}`);
+            console.log(`✅ XLM tokens sent! Transaction: ${actualTxHash}`);
           } else {
             conversionStatus = 'failed';
-            console.error('Failed to send MNEE tokens:', transferResult.error);
+            console.error('Failed to send XLM tokens:', transferResult.error);
           }
         } else {
-          // User doesn't have enough MNEE - this is expected in production
+          // User doesn't have enough XLM - this is expected in production
           // In production, treasury wallet would send tokens
-          console.log('⚠️ User wallet does not have sufficient MNEE balance.');
+          console.log('⚠️ User wallet does not have sufficient XLM balance.');
           console.log('💡 In production, a treasury wallet would send tokens here.');
           console.log('📝 Recording conversion as pending (requires treasury wallet in production)');
           
@@ -265,7 +269,7 @@ export const usePoints = () => {
           conversionStatus = 'pending';
         }
       } catch (transferError) {
-        console.error('Error attempting MNEE transfer:', transferError);
+        console.error('Error attempting XLM transfer:', transferError);
         // Still record the conversion, but mark as pending
         conversionStatus = 'pending';
       }
@@ -293,7 +297,7 @@ export const usePoints = () => {
         transaction_type: 'converted',
         source: 'conversion',
         source_id: conversion.id,
-        description: `Converted ${pointsToConvert} points to ${mneeAmount.toFixed(6)} MNEE`,
+        description: `Converted ${pointsToConvert} points to ${xlmAmount.toFixed(7)} XLM`,
         created_at: new Date().toISOString(),
       };
 
@@ -332,11 +336,11 @@ export const usePoints = () => {
         console.error('Failed to save conversion to Supabase:', supabaseError);
       }
 
-      console.log(`✅ Converted ${pointsToConvert} points to ${mneeAmount.toFixed(6)} MNEE (Status: ${conversionStatus})`);
+      console.log(`✅ Converted ${pointsToConvert} points to ${xlmAmount.toFixed(7)} XLM (Status: ${conversionStatus})`);
       
       return {
         conversion,
-        mneeAmount,
+        xlmAmount,
         remainingPoints: (userPoints.total_points - pointsToConvert),
         transactionHash: actualTxHash || conversion.transaction_hash,
         status: conversionStatus,
@@ -371,7 +375,7 @@ export const usePoints = () => {
     loading,
     error,
     earnPoints,
-    convertPointsToMnee,
+    convertPointsToXlm,
     getPointsForPayment,
     conversionRate: CONVERSION_RATE,
     pointsRules: POINTS_RULES,

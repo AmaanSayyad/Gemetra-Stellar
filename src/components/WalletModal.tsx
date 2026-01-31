@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wallet, ExternalLink } from 'lucide-react';
-import { useConnect } from 'wagmi';
+import { X, Wallet, ExternalLink, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useStellarWallet } from '../utils/stellar-wallet';
+import { StellarWalletType } from '../config/stellar-wallets';
+import { STELLAR_WALLETS } from '../config/stellar-wallets';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -9,8 +11,9 @@ interface WalletModalProps {
 }
 
 export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
-  const { connect, connectors, isPending } = useConnect();
-  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const { connect, isWalletInstalled, error, isLoading } = useStellarWallet();
+  const [connectingWallet, setConnectingWallet] = useState<StellarWalletType | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -31,156 +34,41 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
     }
   }, [isOpen]);
 
-  // Filter out unwanted wallets
-  const excludedWallets = ['keplr', 'subwallet', 'onewallet', 'flow'];
-  const filteredConnectors = connectors.filter((connector) => {
-    const connectorId = connector.id.toLowerCase();
-    const connectorName = (connector.name || '').toLowerCase();
-    return !excludedWallets.some(excluded => 
-      connectorId.includes(excluded) || connectorName.includes(excluded)
-    );
-  });
+  // Clear error when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setConnectionError(null);
+    }
+  }, [isOpen]);
 
-  const handleConnect = async (connector: any) => {
+  // Update connection error from context
+  useEffect(() => {
+    if (error) {
+      setConnectionError(error);
+    }
+  }, [error]);
+
+  const handleConnect = async (walletType: StellarWalletType) => {
     try {
-      setConnectingId(connector.id);
-      connect({ connector });
-      // Close modal after a short delay to allow connection to start
+      setConnectingWallet(walletType);
+      setConnectionError(null);
+      
+      await connect(walletType);
+      
+      // Close modal after successful connection
       setTimeout(() => {
         onClose();
-        setConnectingId(null);
+        setConnectingWallet(null);
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to connect:', error);
-      setConnectingId(null);
+      setConnectionError(error.message || 'Failed to connect wallet. Please try again.');
+      setConnectingWallet(null);
     }
   };
 
-  const getWalletName = (connector: any): string | null => {
-    const connectorId = connector.id.toLowerCase();
-    const connectorName = (connector.name || '').toLowerCase();
-    
-    // Check connector ID and name for wallet identification
-    if (connectorId.includes('metamask') || connectorName.includes('metamask')) {
-      return 'MetaMask';
-    }
-    if (connectorId.includes('nightly') || connectorName.includes('nightly')) {
-      return 'Nightly';
-    }
-    if (connectorId.includes('walletconnect') || connectorName.includes('walletconnect')) {
-      return 'WalletConnect';
-    }
-    if (connectorId.includes('coinbase') || connectorName.includes('coinbase')) {
-      return 'Coinbase Wallet';
-    }
-    
-    // For injected connector, try to detect from window.ethereum
-    if (connector.id === 'injected') {
-      if (typeof window !== 'undefined') {
-        const ethereum = (window as any).ethereum;
-        if (ethereum?.isMetaMask) return 'MetaMask';
-        if (ethereum?.isCoinbaseWallet) return 'Coinbase Wallet';
-        if (ethereum?.isNightly) return 'Nightly';
-        if (ethereum?.isRainbow) return 'Rainbow';
-        // Filter out unwanted wallets
-        if (ethereum?.isKeplr || ethereum?.keplr) return null; // Keplr
-        if (ethereum?.isSubWallet || ethereum?.subwallet) return null; // Subwallet
-        if (ethereum?.isOneWallet || ethereum?.onewallet) return null; // OneWallet
-        if (ethereum?.flow) return null; // Flow
-        if (ethereum) return 'Injected Wallet';
-      }
-      return 'Browser Wallet';
-    }
-    
-    // Use connector name if available
-    const name = connector.name || 'Unknown Wallet';
-    // Double-check name for excluded wallets
-    const lowerName = name.toLowerCase();
-    if (excludedWallets.some(excluded => lowerName.includes(excluded))) {
-      return null;
-    }
-    return name;
-  };
-
-  const getWalletIcon = (connector: any): string | null => {
-    // Check connector ID and name for wallet identification
-    const connectorId = connector.id.toLowerCase();
-    const connectorName = (connector.name || '').toLowerCase();
-    
-    // MetaMask detection
-    if (connectorId.includes('metamask') || connectorName.includes('metamask')) {
-      return '/metmask.png';
-    }
-    
-    // Nightly detection
-    if (connectorId.includes('nightly') || connectorName.includes('nightly')) {
-      return '/nightly.png';
-    }
-    
-    // WalletConnect detection
-    if (connectorId.includes('walletconnect') || connectorName.includes('walletconnect')) {
-      return '/walletconnect.png';
-    }
-    
-    // Coinbase Wallet detection
-    if (connectorId.includes('coinbase') || connectorName.includes('coinbase')) {
-      return '/coinbase.svg';
-    }
-    
-    // For injected connector, try to detect from window.ethereum
-    if (connector.id === 'injected') {
-      if (typeof window !== 'undefined') {
-        const ethereum = (window as any).ethereum;
-        if (ethereum?.isMetaMask) return '/metmask.png';
-        if (ethereum?.isCoinbaseWallet) return '/coinbase.svg';
-        if (ethereum?.isNightly) return '/nightly.png';
-      }
-    }
-    
-    return null;
-  };
-
-  const getWalletDescription = (connector: any): string => {
-    if (connector.id === 'injected') {
-      if (typeof window !== 'undefined') {
-        if ((window as any).ethereum?.isMetaMask) return 'Connect using MetaMask extension';
-        if ((window as any).ethereum?.isCoinbaseWallet) return 'Connect using Coinbase Wallet';
-        if ((window as any).ethereum?.isNightly) return 'Connect using Nightly Wallet';
-        if ((window as any).ethereum) return 'Connect using your browser wallet';
-      }
-      return 'Connect using your browser wallet';
-    }
-    if (connector.id.includes('walletConnect')) return 'Connect using WalletConnect (mobile wallets)';
-    if (connector.id.includes('coinbase')) return 'Connect using Coinbase Wallet app';
-    return 'Connect wallet';
-  };
-
-  // Define wallet display order (must be after getWalletName is defined)
-  const getWalletPriority = (connector: any): number => {
-    const walletName = getWalletName(connector);
-    if (!walletName) return 999; // Filtered wallets go to the end
-    
-    const lowerName = walletName.toLowerCase();
-    if (lowerName.includes('metamask')) return 1;
-    if (lowerName.includes('nightly')) return 2;
-    if (lowerName.includes('walletconnect')) return 3;
-    if (lowerName.includes('coinbase')) return 4;
-    return 5; // Other wallets after the priority ones
-  };
-
-  // Remove duplicate wallets (same name)
-  const uniqueConnectors = filteredConnectors.filter((connector, index, self) => {
-    const walletName = getWalletName(connector);
-    if (!walletName) return false; // Filter out null names
-    // Find first occurrence of this wallet name
-    const firstIndex = self.findIndex(c => getWalletName(c) === walletName);
-    return index === firstIndex;
-  });
-
-  // Sort connectors by priority
-  const sortedConnectors = [...uniqueConnectors].sort((a, b) => {
-    return getWalletPriority(a) - getWalletPriority(b);
-  });
+  // Get all Stellar wallet configurations
+  const walletConfigs = Object.values(STELLAR_WALLETS);
 
   if (!isOpen) return null;
 
@@ -219,18 +107,24 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
 
               {/* Wallet List */}
               <div className="p-6 space-y-3">
-                {sortedConnectors.map((connector) => {
-                  const walletName = getWalletName(connector);
-                  // Skip if wallet name is null (filtered out)
-                  if (!walletName) return null;
-                  
-                  const isConnecting = connectingId === connector.id;
-                  const isDisabled = isPending && !isConnecting;
+                {connectionError && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-red-800">{connectionError}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {walletConfigs.map((wallet) => {
+                  const installed = isWalletInstalled(wallet.id);
+                  const isConnecting = connectingWallet === wallet.id;
+                  const isDisabled = isLoading && !isConnecting;
 
                   return (
                     <button
-                      key={connector.id}
-                      onClick={() => handleConnect(connector)}
+                      key={wallet.id}
+                      onClick={() => handleConnect(wallet.id)}
                       disabled={isDisabled}
                       className={`w-full flex items-center space-x-4 p-4 rounded-lg border-2 transition-all duration-200 ${
                         isConnecting
@@ -240,12 +134,23 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                           : 'border-gray-200 hover:border-gray-900 hover:bg-gray-50'
                       }`}
                     >
-                      {getWalletIcon(connector) ? (
+                      {wallet.icon ? (
                         <div className="w-12 h-12 flex-shrink-0">
                           <img 
-                            src={getWalletIcon(connector)!} 
-                            alt={walletName}
+                            src={wallet.icon} 
+                            alt={wallet.name}
                             className="w-full h-full object-contain rounded-lg"
+                            onError={(e) => {
+                              // Fallback to generic wallet icon if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.parentElement!.innerHTML = `
+                                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                  </svg>
+                                </div>
+                              `;
+                            }}
                           />
                         </div>
                       ) : (
@@ -254,11 +159,16 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                         </div>
                       )}
                       <div className="flex-1 text-left">
-                        <div className="font-semibold text-gray-900">
-                          {walletName}
+                        <div className="font-semibold text-gray-900 flex items-center space-x-2">
+                          <span>{wallet.name}</span>
+                          {wallet.requiresInstallation && !installed && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                              Not Installed
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {getWalletDescription(connector)}
+                          {wallet.description}
                         </div>
                       </div>
                       {isConnecting ? (
@@ -268,7 +178,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                       )}
                     </button>
                   );
-                }).filter(Boolean)}
+                })}
               </div>
 
               {/* Footer */}
@@ -278,12 +188,12 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                 </p>
                 <div className="mt-3 text-center">
                   <a
-                    href="https://ethereum.org/en/wallets/"
+                    href="https://www.stellar.org/learn/intro-to-stellar"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-gray-600 hover:text-gray-900 underline"
                   >
-                    Don't have a wallet? Learn more
+                    Don't have a wallet? Learn more about Stellar
                   </a>
                 </div>
               </div>

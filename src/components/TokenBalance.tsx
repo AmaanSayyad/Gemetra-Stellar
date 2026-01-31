@@ -1,49 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, RefreshCw, Eye, Wallet, Copy } from 'lucide-react';
-import { getAccountBalance, getConnectedAccount, isWalletConnected, formatAddress, getMneeBalance } from '../utils/ethereum';
+import { getXlmBalance, formatStellarAddress } from '../utils/stellar';
+import { useStellarWallet } from '../utils/stellar-wallet';
 
 export const TokenBalance: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [walletAddress, setWalletAddress] = useState('');
+  const { walletState } = useStellarWallet();
+  const walletAddress = walletState.publicKey || '';
+  const isConnected = walletState.isConnected;
   const [balances, setBalances] = useState({
     totalUSD: 0,
-    eth: 0,
-    mnee: 0,
+    xlm: 0,
     totalCoins: 0,
   });
 
   const fetchBalances = async () => {
     setIsLoading(true);
     try {
-      const connectedAddress = getConnectedAccount();
-      
-      if (isWalletConnected() && connectedAddress) {
-        setWalletAddress(connectedAddress);
-        
-        const accountBalance = await getAccountBalance();
-        const mneeBalance = await getMneeBalance(connectedAddress as `0x${string}`);
+      if (isConnected && walletAddress) {
+        const xlmBalance = await getXlmBalance(walletAddress);
         
         // Calculate total USD value (simplified calculation)
-        const ethPrice = 3000; // Example ETH price in USD
-        const mneePrice = 1; // MNEE is USD-backed stablecoin
-        const totalUSD = (accountBalance.eth * ethPrice) + (mneeBalance * mneePrice);
+        const xlmPrice = 0.10; // Example XLM price in USD
+        const totalUSD = xlmBalance * xlmPrice;
         
-        // Count total assets (ETH + MNEE)
-        const totalCoins = (accountBalance.eth > 0 ? 1 : 0) + (mneeBalance > 0 ? 1 : 0);
+        // Count total assets (XLM)
+        const totalCoins = xlmBalance > 0 ? 1 : 0;
         
         setBalances({
           totalUSD: totalUSD,
-          eth: accountBalance.eth,
-          mnee: mneeBalance,
+          xlm: xlmBalance,
           totalCoins: totalCoins,
         });
       } else {
         // Reset when wallet not connected
-        setWalletAddress('');
         setBalances({
           totalUSD: 0,
-          eth: 0,
-          mnee: 0,
+          xlm: 0,
           totalCoins: 0,
         });
       }
@@ -52,8 +45,7 @@ export const TokenBalance: React.FC = () => {
       // Show fallback data on error
       setBalances({
         totalUSD: 0,
-        eth: 0,
-        mnee: 0,
+        xlm: 0,
         totalCoins: 0,
       });
     } finally {
@@ -63,7 +55,7 @@ export const TokenBalance: React.FC = () => {
 
   useEffect(() => {
     fetchBalances();
-  }, []);
+  }, [isConnected, walletAddress]);
 
   const copyAddress = () => {
     if (walletAddress) {
@@ -93,7 +85,9 @@ export const TokenBalance: React.FC = () => {
       if (normalized === 'ETH' || normalized === 'ETHEREUM') {
         return '/ethereum.png';
       } else if (normalized === 'MNEE') {
-        return '/mnee.png';
+        return '/xlm.png';
+      } else if (normalized === 'XLM') {
+        return '/xlm.png';
       }
       return null;
     };
@@ -154,7 +148,7 @@ export const TokenBalance: React.FC = () => {
       ) : (
         <>
           {/* Wallet Address */}
-          {isWalletConnected() && walletAddress ? (
+          {isConnected && walletAddress ? (
             <div className="mb-4 sm:mb-6 p-2 sm:p-3 bg-gray-100 border border-gray-200 rounded-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -162,7 +156,7 @@ export const TokenBalance: React.FC = () => {
                   <div>
                     <div className="text-xs sm:text-sm text-gray-900 font-medium">Connected Wallet</div>
                     <div className="text-xs text-gray-700 font-mono">
-                      {formatAddress(walletAddress)}
+                      {formatStellarAddress(walletAddress)}
                     </div>
                   </div>
                 </div>
@@ -205,30 +199,21 @@ export const TokenBalance: React.FC = () => {
 
           {/* Token List */}
           <div className="space-y-1 mb-4 sm:mb-6">
-            {/* ETH Balance */}
-            {balances.eth > 0 && (
+            {/* XLM Balance */}
+            {balances.xlm > 0 && (
               <TokenRow
-                symbol="ETH"
-                amount={balances.eth}
-                usdValue={balances.eth * 3000}
-              />
-            )}
-
-            {/* MNEE Balance */}
-            {balances.mnee > 0 && (
-              <TokenRow
-                symbol="MNEE"
-                amount={balances.mnee}
-                usdValue={balances.mnee * 1}
+                symbol="XLM"
+                amount={balances.xlm}
+                usdValue={balances.xlm * 0.10}
               />
             )}
 
             {/* Empty state when no tokens */}
-            {balances.eth === 0 && balances.mnee === 0 && (
+            {balances.xlm === 0 && (
               <div className="text-center py-6 sm:py-8 text-gray-500">
                 <div className="text-xs sm:text-sm">No tokens found</div>
                 <div className="text-xs text-gray-400 mt-1">
-                  {isWalletConnected() ? 'Your wallet appears to be empty' : 'Connect wallet to view balances'}
+                  {isConnected ? 'Your wallet appears to be empty' : 'Connect wallet to view balances'}
                 </div>
               </div>
             )}
@@ -248,8 +233,8 @@ export const TokenBalance: React.FC = () => {
             <div className="text-xs sm:text-sm text-gray-700">
               {balances.totalUSD > 0 
                 ? `Your portfolio holds ${balances.totalCoins} asset${balances.totalCoins !== 1 ? 's' : ''} worth $${balances.totalUSD.toFixed(2)}`
-                : isWalletConnected() 
-                ? 'Consider adding ETH or MNEE to your wallet'
+                : isConnected 
+                ? 'Consider adding XLM to your wallet'
                 : 'Connect your wallet to see real-time balance insights'
               }
             </div>

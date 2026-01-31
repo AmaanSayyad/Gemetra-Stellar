@@ -5,6 +5,7 @@ import { AddEmployeeModal } from './AddEmployeeModal';
 import { EditEmployeeModal } from './EditEmployeeModal';
 import { useEmployees } from '../hooks/useEmployees';
 import type { Employee } from '../lib/supabase';
+import { formatStellarAddress } from '../utils/stellar';
 
 interface EmployeesProps {
   setActiveTab?: (tab: string) => void;
@@ -356,8 +357,8 @@ export const Employees: React.FC<EmployeesProps> = ({
                           </div>
                           <div className="flex items-center space-x-2">
                             <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-xs sm:text-sm text-gray-700 font-mono truncate">
-                              {employee.wallet_address}
+                            <span className="text-xs sm:text-sm text-gray-700 font-mono truncate" title={employee.wallet_address}>
+                              {employee.wallet_address ? formatStellarAddress(employee.wallet_address) : 'Not set'}
                             </span>
                           </div>
                         </div>

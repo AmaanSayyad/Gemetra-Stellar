@@ -1,15 +1,15 @@
 import { Wallet } from "lucide-react";
 import { Button } from "../ui";
-import { useAccount, useDisconnect } from "wagmi";
+import { useStellarWallet } from "./stellar-wallet";
+import { formatStellarAddress } from "./stellar";
 import { useState } from "react";
 import { WalletModal } from "../components/WalletModal";
 
 export default function ConnectButton() {
-    const { address, isConnected } = useAccount();
-    const { disconnect } = useDisconnect();
+    const { walletState, disconnect } = useStellarWallet();
     const [showWalletModal, setShowWalletModal] = useState(false);
 
-    if (isConnected && address) {
+    if (walletState.isConnected && walletState.publicKey) {
         return (
             <Button
                 size="large"
@@ -18,7 +18,7 @@ export default function ConnectButton() {
                 className="px-8 py-6 shadow-lg bg-[#262626] hover:shadow-xl transition-all duration-300"
                 onClick={() => disconnect()}
             >
-                Disconnect {address.slice(0, 6)}...{address.slice(-4)}
+                Disconnect {formatStellarAddress(walletState.publicKey)}
             </Button>
         );
     }

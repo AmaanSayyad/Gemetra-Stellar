@@ -21,10 +21,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
-import { formatAddress } from '../utils/ethereum';
+import { formatStellarAddress } from '../utils/stellar';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import ConnectButton from '../utils/connect-wallet';
-import { useDisconnect } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 
 interface SidebarProps {
   activeTab: string;
@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse
 }) => {
   const { signOut } = useAuth();
-  const { disconnect } = useDisconnect();
+  const { disconnect } = useStellarWallet();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -465,7 +465,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <Wallet className="w-3 h-3 text-green-600 flex-shrink-0" />
                           <div className="text-xs text-gray-600 font-mono truncate">
-                            {formatAddress(walletAddress)}
+                            {formatStellarAddress(walletAddress)}
                           </div>
                         </div>
                       </div>

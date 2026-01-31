@@ -1,12 +1,12 @@
 import React from 'react';
 import { Bell, User, Menu, X, LogOut, Settings } from 'lucide-react';
 import { useState } from 'react';
-import { formatAddress } from '../utils/ethereum';
+import { formatStellarAddress } from '../utils/stellar';
 import { useAuth } from '../hooks/useAuth';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Button } from "@/ui/components/Button";
 import ConnectButton from '../utils/connect-wallet';
-import { useDisconnect } from 'wagmi';
+import { useStellarWallet } from '../utils/stellar-wallet';
 
 interface HeaderProps {
   activeTab: string;
@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   user
 }) => {
   const { signOut } = useAuth();
-  const { disconnect } = useDisconnect();
+  const { disconnect } = useStellarWallet();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="flex items-center space-x-2 bg-gray-900 hover:bg-gray-800 px-3 py-2 rounded-lg transition-colors"
                       >
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-white">{formatAddress(walletAddress)}</span>
+                        <span className="text-sm font-medium text-white">{formatStellarAddress(walletAddress)}</span>
                       </button>
                       
                       {/* Wallet Dropdown Menu */}

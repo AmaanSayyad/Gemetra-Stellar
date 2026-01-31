@@ -14,6 +14,9 @@ interface Activity {
   employee?: Employee;
   date: Date;
   transactionHash?: string | null;
+  blockchainType?: 'ethereum' | 'stellar';
+  network?: 'mainnet' | 'testnet';
+  payment?: any; // Store full payment object for helper functions
 }
 
 interface RecentActivityProps {
@@ -29,7 +32,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
   onViewAllClick,
   refreshKey = 0
 }) => {
-  const { getAllPayments } = usePayments();
+  const { getAllPayments, getExplorerLink, getBlockchainTypeBadge } = usePayments();
   const [payments, setPayments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -65,17 +68,20 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
     payments.forEach((payment) => {
       const employee = employees.find(emp => emp.id === payment.employee_id);
       if (employee) {
-        const paymentActivity = {
+        const paymentActivity: Activity = {
           id: `payment-${payment.id}`,
           type: 'payment',
           title: 'Payment Processed',
-          description: `${employee.name} received $${payment.amount.toLocaleString()} ${payment.token}`,
+          description: `${employee.name} received ${payment.amount.toLocaleString()} ${payment.token}`,
           time: formatTimeAgo(new Date(payment.payment_date)),
           status: payment.status,
-          amount: `$${payment.amount.toLocaleString()}`,
+          amount: `${payment.amount.toLocaleString()}`,
           employee: employee,
           date: new Date(payment.payment_date),
-          transactionHash: payment.transaction_hash || null
+          transactionHash: payment.transaction_hash || null,
+          blockchainType: payment.blockchain_type || 'ethereum',
+          network: payment.network || 'mainnet',
+          payment: payment // Store full payment object for helper functions
         };
         activityList.push(paymentActivity);
       }
@@ -87,7 +93,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
       .slice(0, 3);
     
     return sortedActivities;
-  }, [employees, payments, formatTimeAgo]);
+  }, [employees, payments]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -128,8 +134,8 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
           <img
-            src="/mnee.png"
-            alt="MNEE logo"
+            src="/xlm.png"
+            alt="XLM logo"
             className="h-5 w-5 object-contain"
           />
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Recent Activity</h3>
@@ -164,10 +170,24 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
                 </p>
                 
                 {/* Transaction Hash Link (if available) */}
-                {activity.transactionHash && (
-                  <div className="mb-2">
+                {activity.transactionHash && activity.payment && (
+                  <div className="mb-2 flex items-center space-x-2 flex-wrap">
+                    {/* Blockchain type badge */}
+                    {(() => {
+                      const badge = getBlockchainTypeBadge(activity.payment);
+                      const badgeColor = badge.color === 'blue' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-purple-100 text-purple-700';
+                      return (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${badgeColor}`}>
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
+                    
+                    {/* Transaction link */}
                     <a
-                      href={`https://etherscan.io/tx/${activity.transactionHash}`}
+                      href={getExplorerLink(activity.payment) || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()} // Prevent triggering parent click

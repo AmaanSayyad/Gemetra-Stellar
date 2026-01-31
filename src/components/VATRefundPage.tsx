@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Upload, FileCheck, QrCode, CheckCircle, AlertCircle, Search, Clock, FileText, FileUp, FormInput, ExternalLink } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { getConnectedAccount, sendMneePayment, isValidEthereumAddress, MNEE_CONTRACT_ADDRESS_MAINNET } from '../utils/ethereum';
+import { sendXlmPayment, isValidStellarAddress } from '../utils/stellar';
+import { useStellarWallet } from '../utils/stellar-wallet';
 import { usePayments } from '../hooks/usePayments';
 import { usePoints } from '../hooks/usePoints';
-import { useAccount, useSendTransaction } from "wagmi";
-import { parseEther, parseUnits } from "viem";
 import { supabase } from '../lib/supabase';
 
 
@@ -16,6 +15,7 @@ interface VATRefundPageProps {
 export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
   const { createPayment, getAllPayments } = usePayments();
   const { earnPoints } = usePoints();
+  const { walletState } = useStellarWallet();
   const [activeTab, setActiveTab] = useState<'upload' | 'history'>('upload');
   const [step, setStep] = useState<'upload' | 'review' | 'sign' | 'confirmation' | 'error'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,15 +24,12 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
   const [qrValue, setQrValue] = useState<string>('');
   const [refundAmount, setRefundAmount] = useState<number>(0);
   const [entryMode, setEntryMode] = useState<'upload' | 'manual'>('upload');
-  const [selectedToken, setSelectedToken] = useState<'MNEE'>('MNEE');
+  const [selectedToken, setSelectedToken] = useState<'XLM'>('XLM');
   const [transactionStatus, setTransactionStatus] = useState<'waiting' | 'confirmed' | 'rejected'>('waiting');
   const [transactionHash, setTransactionHash] = useState<string>('');
   const [refundHistory, setRefundHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const { address } = useAccount();
-  const { sendTransactionAsync } = useSendTransaction();
 
   // Form fields for manual entry
   const [formData, setFormData] = useState({
@@ -86,7 +83,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
-      // Simulate VAT calculation based on file - range between 1-10 MNEE
+      // Simulate VAT calculation based on file - range between 1-10 XLM
       setRefundAmount(Math.floor(Math.random() * 9) + 1);
     }
   };
@@ -102,9 +99,9 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
       return;
     }
 
-    // Validate wallet address format (Ethereum address)
-    if (!isValidEthereumAddress(formData.receiverWalletAddress)) {
-      setErrorMessage('Please enter a valid Ethereum wallet address (0x...)');
+    // Validate wallet address format (Stellar address)
+    if (!isValidStellarAddress(formData.receiverWalletAddress)) {
+      setErrorMessage('Please enter a valid Stellar wallet address (G...)');
       return;
     }
 
@@ -129,8 +126,8 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
     setErrorMessage(null);
 
     try {
-      if (!address) {
-        throw new Error("Wallet not connected. Please connect your wallet.");
+      if (!walletState.isConnected || !walletState.publicKey) {
+        throw new Error("Wallet not connected. Please connect your Stellar wallet.");
       }
 
       // Recipient wallet address
@@ -143,14 +140,14 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
         throw new Error("Recipient wallet address is required");
       }
 
-      // Amount in MNEE
-      const amount = refundAmount?.toString();
+      // Amount in XLM
+      const amount = refundAmount;
       if (!amount) throw new Error("Refund amount is required");
 
       console.log("Processing VAT refund payment:", {
         recipient: recipientAddress,
         amount,
-        token: "MNEE",
+        token: "XLM",
       });
 
       // Create pending VAT refund record in database
@@ -175,7 +172,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
         const pendingPayment = await createPayment({
           employee_id: "vat-refund",
           amount: refundAmount,
-          token: "MNEE",
+          token: "XLM",
           transaction_hash: undefined,
           status: "pending",
           payment_date: new Date().toISOString(),
@@ -208,13 +205,13 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
 
       setStep("sign");
 
-      // Generate QR code for payment using EIP-681 format for ERC-20 token transfer
-      const mneeAmount = parseUnits(amount, 18); // MNEE has 18 decimals
-      const qrData = `ethereum:${MNEE_CONTRACT_ADDRESS_MAINNET}@1/transfer?address=${recipientAddress}&uint256=${mneeAmount.toString()}`;
-      setQrValue(qrData);
-
-      // Send MNEE transaction
-      const result = await sendMneePayment(recipientAddress as `0x${string}`, parseFloat(amount));
+      // Send XLM transaction with memo for refund reference
+      const memo = `VAT Refund - ${formData.receiptNo || formData.vatRegNo || 'N/A'}`;
+      const result = await sendXlmPayment({
+        recipientAddress: recipientAddress as string,
+        amount: amount,
+        memo: memo
+      });
       
       if (!result.success) {
         throw new Error(result.error || "Transaction failed");
@@ -270,7 +267,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
             const completedPayment = await createPayment({
               employee_id: "vat-refund",
               amount: refundAmount,
-              token: "MNEE",
+              token: "XLM",
               transaction_hash: tx,
               status: "completed",
               payment_date: new Date().toISOString(),
@@ -298,7 +295,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
         
         // Award points for VAT refund (15 points)
         try {
-          await earnPoints(15, 'vat_refund', tx, `VAT refund of $${refundAmount.toFixed(2)} MNEE`);
+          await earnPoints(15, 'vat_refund', tx, `VAT refund of ${refundAmount.toFixed(7)} XLM`);
           console.log('🎉 Earned 15 points for VAT refund!');
         } catch (pointsError) {
           console.error('Failed to award points (non-critical):', pointsError);
@@ -309,7 +306,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
 
       setTransactionHash(tx);
       // Update QR code to show transaction hash after confirmation
-      setQrValue(`ethereum://tx/${tx}`);
+      setQrValue(`stellar://tx/${tx}`);
       setTransactionStatus("confirmed");
     } catch (error) {
       console.error("Error in handleApprove:", error);
@@ -345,21 +342,26 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
     setIsLoading(true);
     try {
       // Check wallet connection
-      if (!getConnectedAccount()) {
-        throw new Error('Wallet not connected. Please connect your wallet first.');
+      if (!walletState.isConnected || !walletState.publicKey) {
+        throw new Error('Wallet not connected. Please connect your Stellar wallet first.');
       }
 
       // Prepare recipient data for the payment
       const recipientAddress = entryMode === 'manual' 
         ? formData.receiverWalletAddress 
-        : (getConnectedAccount() || '');
+        : (walletState.publicKey || '');
 
-      if (!recipientAddress || !isValidEthereumAddress(recipientAddress)) {
-        throw new Error('Valid recipient wallet address is required');
+      if (!recipientAddress || !isValidStellarAddress(recipientAddress)) {
+        throw new Error('Valid recipient Stellar wallet address is required');
       }
 
-      // Process the payment using sendMneePayment
-      const result = await sendMneePayment(recipientAddress as `0x${string}`, refundAmount);
+      // Process the payment using sendXlmPayment with memo
+      const memo = `VAT Refund - ${formData.receiptNo || formData.vatRegNo || 'N/A'}`;
+      const result = await sendXlmPayment({
+        recipientAddress: recipientAddress,
+        amount: refundAmount,
+        memo: memo
+      });
 
       if (result.success) {
         setTransactionHash(result.txHash);
@@ -439,7 +441,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
 
         // Set transaction as confirmed
         setTransactionStatus('confirmed');
-        setQrValue(`ethereum://tx/${result.txHash}`);
+        setQrValue(`stellar://tx/${result.txHash}`);
       } else {
         // Handle payment failure - update pending refund to failed
         if (pendingRefundId) {
@@ -541,9 +543,9 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
       return;
     }
 
-    // Validate wallet address format (Ethereum address)
-    if (!isValidEthereumAddress(formData.receiverWalletAddress)) {
-      setErrorMessage('Please enter a valid Ethereum wallet address (0x...)');
+    // Validate wallet address format (Stellar address)
+    if (!isValidStellarAddress(formData.receiverWalletAddress)) {
+      setErrorMessage('Please enter a valid Stellar wallet address (G...)');
       return;
     }
 
@@ -577,8 +579,8 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3 mb-2">
                 <img
-                  src="/mnee.png"
-                  alt="MNEE logo"
+                  src="/xlm.png"
+                  alt="XLM logo"
                   className="h-6 w-6 object-contain"
                 />
                 <h2 className="text-xl font-bold text-gray-900">Submit VAT Refund</h2>
@@ -647,7 +649,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                         value={formData.receiverWalletAddress}
                         onChange={handleInputChange}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. 0xdAF0182De86F904918Db8d07c7340A1EfcDF8244"
+                        placeholder="e.g. GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H"
                         required
                       />
                     </div>
@@ -655,7 +657,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
                       <div className="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                        <span className="text-sm font-medium text-gray-900">MNEE Stablecoin</span>
+                        <span className="text-sm font-medium text-gray-900">XLM (Stellar Lumens)</span>
                       </div>
                     </div>
                   </div>
@@ -752,7 +754,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                         value={formData.receiverWalletAddress}
                         onChange={handleInputChange}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                        placeholder="e.g. GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H"
                         required
                       />
                     </div>
@@ -761,7 +763,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
                     <div className="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                      <span className="text-sm font-medium text-gray-900">MNEE Stablecoin</span>
+                      <span className="text-sm font-medium text-gray-900">XLM (Stellar Lumens)</span>
                     </div>
                   </div>
 
@@ -770,7 +772,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-700">Calculated Refund Amount:</span>
                         <span className="text-lg font-bold text-green-600">
-                          MNEE {parseFloat(formData.vatAmount) > 0 ? parseFloat(formData.vatAmount).toFixed(2) : '0.00'}
+                          {parseFloat(formData.vatAmount) > 0 ? parseFloat(formData.vatAmount).toFixed(7) : '0.0000000'} XLM
                         </span>
                       </div>
                     </div>
@@ -875,8 +877,8 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/mnee.png"
-                alt="MNEE logo"
+                src="/xlm.png"
+                alt="XLM logo"
                 className="h-6 w-6 object-contain"
               />
               <h2 className="text-xl font-bold text-gray-900">Review VAT Refund Details</h2>
@@ -937,7 +939,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Token</p>
-                          <p className="text-sm font-medium text-gray-900">MNEE Stablecoin</p>
+                          <p className="text-sm font-medium text-gray-900">XLM (Stellar Lumens)</p>
                         </div>
                       </div>
                     </div>
@@ -1035,23 +1037,23 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/mnee.png"
-                alt="MNEE logo"
+                src="/xlm.png"
+                alt="XLM logo"
                 className="h-6 w-6 object-contain"
               />
-              <h2 className="text-xl font-bold text-gray-900">Sign with EVM Wallet</h2>
+              <h2 className="text-xl font-bold text-gray-900">Sign with Stellar Wallet</h2>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center mb-6">
               {transactionStatus === 'waiting' ? (
                 <>
                   <QrCode className="w-16 h-16 text-blue-500 mb-4" />
-                  <h3 className="font-semibold text-gray-900 mb-2">Check Your EVM Mobile Wallet</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">Check Your Stellar Wallet</h3>
                   <p className="text-gray-600 text-center mb-2">
-                    A transaction popup should appear in your EVM mobile wallet app
+                    A transaction popup should appear in your Stellar wallet app
                   </p>
                   <p className="text-gray-500 text-center text-sm mb-6">
-                    If you don't see it, scan this QR code with your EVM Wallet app
+                    If you don't see it, scan this QR code with your Stellar Wallet app
                   </p>
 
                   <div className="bg-white border-2 border-gray-300 rounded-lg p-6 w-[280px] h-[280px] flex items-center justify-center mb-4 shadow-lg">
@@ -1081,7 +1083,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-blue-700">Amount:</span>
-                        <span className="text-sm font-medium text-blue-900">{selectedToken} {refundAmount.toFixed(2)}</span>
+                        <span className="text-sm font-medium text-blue-900">{refundAmount.toFixed(7)} {selectedToken}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-blue-700">Receiver:</span>
@@ -1089,7 +1091,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-blue-700">Network Fee:</span>
-                        <span className="text-sm font-medium text-blue-900">~0.001 ETH</span>
+                        <span className="text-sm font-medium text-blue-900">~0.00001 XLM</span>
                       </div>
                     </div>
                   </div>
@@ -1107,21 +1109,21 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                       <div className="mb-4">
                         <div className="flex items-center justify-center gap-2 mb-3">
                           <img
-                            src="/mnee.png"
-                            alt="MNEE logo"
+                            src="/xlm.png"
+                            alt="XLM logo"
                             className="h-5 w-5 object-contain"
                           />
                           <h3 className="text-2xl font-bold text-gray-900">Transaction Confirmed!</h3>
                         </div>
                         <p className="text-gray-600 text-base">
-                          Your transaction has been confirmed on the Ethereum blockchain
+                          Your transaction has been confirmed on the Stellar blockchain
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 mb-6 shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <span className="text-green-800 font-medium text-sm">Transaction Hash:</span>
                           <a
-                            href={`https://etherscan.io/tx/${transactionHash || qrValue.slice(-16)}`}
+                            href={`https://stellar.expert/explorer/public/tx/${transactionHash || qrValue.slice(-16)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-900 font-mono text-sm flex items-center justify-center sm:justify-end gap-2 hover:text-blue-600 hover:underline bg-white/60 px-3 py-1.5 rounded-lg transition-all"
@@ -1134,11 +1136,11 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-center justify-center gap-2 text-sm text-blue-800">
                           <img
-                            src="/ethereum.png"
-                            alt="Ethereum"
+                            src="/xlm.png"
+                            alt="Stellar"
                             className="h-4 w-4 object-contain"
                           />
-                          <span>Secured by Ethereum • Powered by MNEE</span>
+                          <span>Secured by Stellar • Powered by XLM</span>
                         </div>
                       </div>
                     </>
@@ -1205,8 +1207,8 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
               </div>
               <div className="flex items-center justify-center gap-3 mb-3">
                 <img
-                  src="/mnee.png"
-                  alt="MNEE logo"
+                  src="/xlm.png"
+                  alt="XLM logo"
                   className="h-7 w-7 object-contain"
                 />
                 <h2 className="text-2xl font-bold text-gray-900">VAT Refund Submitted Successfully</h2>
@@ -1254,11 +1256,11 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                   <span className="text-gray-700 font-medium">Refund Amount:</span>
                   <div className="flex items-center gap-2">
                     <img
-                      src="/mnee.png"
-                      alt="MNEE"
+                      src="/xlm.png"
+                      alt="XLM"
                       className="h-5 w-5 object-contain"
                     />
-                    <span className="text-green-600 font-bold text-lg">{selectedToken} {refundAmount.toFixed(2)}</span>
+                    <span className="text-green-600 font-bold text-lg">{selectedToken} {refundAmount.toFixed(7)}</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-300 pb-3">
@@ -1269,7 +1271,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-gray-300 pb-3">
                     <span className="text-gray-700 font-medium">Transaction Hash:</span>
                     <a
-                      href={`https://etherscan.io/tx/${transactionHash}`}
+                      href={`https://stellar.expert/explorer/public/tx/${transactionHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 font-mono text-sm flex items-center gap-2 hover:text-blue-800 hover:underline bg-white px-3 py-1.5 rounded-lg border border-blue-200 transition-all"
@@ -1338,8 +1340,8 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img
-              src="/mnee.png"
-              alt="MNEE logo"
+              src="/xlm.png"
+              alt="XLM logo"
               className="h-7 w-7 object-contain"
             />
             <h2 className="text-2xl font-bold text-gray-900">VAT Refund History</h2>
@@ -1366,7 +1368,7 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-700 mb-2">No VAT refund history found</h3>
             <p className="text-gray-500 text-sm max-w-md mx-auto">
-              Submit a VAT refund to see it appear in your history. All refunds are processed on the Ethereum blockchain using MNEE stablecoin.
+              Submit a VAT refund to see it appear in your history. All refunds are processed on the Stellar blockchain using XLM.
             </p>
           </div>
         ) : (
@@ -1430,23 +1432,23 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
                             <img
-                              src="/mnee.png"
-                              alt="MNEE"
+                              src="/xlm.png"
+                              alt="XLM"
                               className="h-5 w-5 object-contain"
                             />
                             <span className="text-sm font-semibold text-gray-900">
-                              {refund.amount.toFixed(2)}
+                              {refund.amount.toFixed(7)}
                             </span>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center">
                           <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                             <img
-                              src="/mnee.png"
-                              alt="MNEE"
+                              src="/xlm.png"
+                              alt="XLM"
                               className="h-3.5 w-3.5 object-contain"
                             />
-                            {refund.token || 'MNEE'}
+                            {refund.token || 'XLM'}
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center">
@@ -1465,7 +1467,11 @@ export const VATRefundPage: React.FC<VATRefundPageProps> = () => {
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center">
                           {refund.transaction_hash ? (
                             <a
-                              href={`https://etherscan.io/tx/${refund.transaction_hash}`}
+                              href={
+                                refund.token === 'XLM' || refund.token === 'Stellar'
+                                  ? `https://stellar.expert/explorer/public/tx/${refund.transaction_hash}`
+                                  : `https://etherscan.io/tx/${refund.transaction_hash}`
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-mono text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-all hover:shadow-sm"

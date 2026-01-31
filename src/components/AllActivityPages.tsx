@@ -14,6 +14,9 @@ interface Activity {
   employee?: Employee;
   date: Date;
   transactionHash?: string | null;
+  blockchainType?: 'ethereum' | 'stellar';
+  network?: 'mainnet' | 'testnet';
+  payment?: any; // Store full payment object for helper functions
 }
 
 interface AllActivityPageProps {
@@ -29,7 +32,7 @@ export const AllActivityPage: React.FC<AllActivityPageProps> = ({
   onEmployeeClick,
   refreshKey = 0
 }) => {
-  const { getAllPayments } = usePayments();
+  const { getAllPayments, getExplorerLink, getBlockchainTypeBadge } = usePayments();
   const [payments, setPayments] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -71,13 +74,16 @@ export const AllActivityPage: React.FC<AllActivityPageProps> = ({
           id: `payment-${payment.id}`,
           type: 'payment',
           title: 'Payment Processed',
-          description: `${employee.name} received $${payment.amount.toLocaleString()} ${payment.token}`,
+          description: `${employee.name} received ${payment.amount.toLocaleString()} ${payment.token}`,
           time: formatTimeAgo(new Date(payment.payment_date)),
           status: payment.status,
-          amount: `$${payment.amount.toLocaleString()}`,
+          amount: `${payment.amount.toLocaleString()}`,
           employee: employee,
           date: new Date(payment.payment_date),
-          transactionHash: payment.transaction_hash || null
+          transactionHash: payment.transaction_hash || null,
+          blockchainType: payment.blockchain_type || 'ethereum',
+          network: payment.network || 'mainnet',
+          payment: payment // Store full payment object for helper functions
         });
       }
     });
@@ -189,10 +195,24 @@ export const AllActivityPage: React.FC<AllActivityPageProps> = ({
                       </p>
                       
                       {/* Transaction Hash Link (if available) */}
-                      {activity.transactionHash && (
-                        <div className="mb-2">
+                      {activity.transactionHash && activity.payment && (
+                        <div className="mb-2 flex items-center space-x-2 flex-wrap">
+                          {/* Blockchain type badge */}
+                          {(() => {
+                            const badge = getBlockchainTypeBadge(activity.payment);
+                            const badgeColor = badge.color === 'blue' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-purple-100 text-purple-700';
+                            return (
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${badgeColor}`}>
+                                {badge.label}
+                              </span>
+                            );
+                          })()}
+                          
+                          {/* Transaction link */}
                           <a
-                            href={`https://etherscan.io/tx/${activity.transactionHash}`}
+                            href={getExplorerLink(activity.payment) || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()} // Prevent triggering parent click

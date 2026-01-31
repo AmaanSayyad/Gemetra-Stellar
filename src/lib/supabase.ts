@@ -49,6 +49,7 @@ export interface Employee {
   department: string;
   salary: number;
   wallet_address: string;
+  legacy_eth_address?: string; // Legacy Ethereum address preserved during Stellar migration
   join_date: string;
   status: 'active' | 'inactive';
   created_at: string;
@@ -81,6 +82,10 @@ export interface Payment {
   payment_date: string;
   created_at: string;
   vat_refund_details?: VATRefundDetails; // JSONB field for VAT refund form data
+  blockchain_type: 'ethereum' | 'stellar'; // Blockchain platform used for payment
+  network: 'mainnet' | 'testnet'; // Network used for payment
+  memo?: string; // Stellar memo field for payment notes
+  ledger?: number; // Stellar ledger number where transaction was included
 }
 
 // Scheduled Payment Interface

@@ -61,7 +61,7 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
                 </div>
                 
                 <p className="text-neutral-600 mb-4 text-sm leading-relaxed">
-                  Borderless payments infrastructure built on Ethereum with MNEE stablecoin.
+                  Borderless payments infrastructure built on Stellar with XLM for fast, low-cost global transactions.
                 </p>
                 
                 {/* Social Links */}
@@ -232,8 +232,8 @@ const EnhancedFooter = React.forwardRef<HTMLElement, EnhancedFooterProps>(
               <div className="flex items-center gap-2">
                 <span className="text-neutral-600 text-sm">Powered by</span>
                 <img
-                  src="/mnee.png"
-                  alt="MNEE logo"
+                  src="/xlm.png"
+                  alt="XLM logo"
                   className="h-4 object-contain"
                 />
               </div>
